@@ -13,12 +13,12 @@ Project templates for [mem](https://github.com/Benjamin-van-Heerden/mem). Each t
 ## Use
 
 ```sh
-mem init --template nextjs-web --template-source https://github.com/Benjamin-van-Heerden/mem-templates.git
+mem init --template nextjs-web
 mem template use python          # add a template to an existing project
 mem template list                # templates here, and the state of a project's items
 ```
 
-Put `template_source = "https://github.com/Benjamin-van-Heerden/mem-templates.git"` in `~/.config/mem/config.toml` to leave out `--template-source`.
+This is mem's default library; `--template-source <git url>` points a project at another one.
 
 A project sends improvements back with `mem template promote <memory|skill|doc> <name>`; every project that uses the template receives them at its next `mem onboard`.
 
