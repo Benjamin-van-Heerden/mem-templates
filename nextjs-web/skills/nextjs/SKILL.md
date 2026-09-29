@@ -64,6 +64,7 @@ import { withWorkflow } from 'workflow/next'
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
+  agentRules: false, // keeps next dev out of AGENTS.md, which mem manages
   poweredByHeader: false,
 }
 

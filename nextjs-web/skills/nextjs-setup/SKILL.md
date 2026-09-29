@@ -24,7 +24,7 @@ Run from the repository root, after `mem init`:
    bun install
    ```
 
-   Leave `AGENTS.md` to mem, and do not add a `CLAUDE.md`: Claude Code reads `AGENTS.md`. `next dev` inserts its own Next.js block into `AGENTS.md`; commit it when it appears. On Linux, drop the `''` after `sed -i`.
+   Leave `AGENTS.md` to mem, and do not add a `CLAUDE.md`: Claude Code reads `AGENTS.md`. The copied `next.config.ts` sets `agentRules: false`, which stops `next dev` from writing its own block into `AGENTS.md`. If the project was scaffolded before `mem init`, delete create-next-app's `CLAUDE.md` and the `<!-- BEGIN:nextjs-agent-rules -->` block from `AGENTS.md`. On Linux, drop the `''` after `sed -i`.
 
 2. Dependencies:
 
