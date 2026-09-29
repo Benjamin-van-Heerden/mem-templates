@@ -33,4 +33,6 @@ A project sends improvements back with `mem template promote <memory|skill|doc> 
 
 Prefer skills over docs for framework guides: skills load when relevant, docs are read in full every session.
 
+A template that scaffolds code ships `docs/setup.md`: a short, one-time instruction that points the agent at the template's setup skill and ends by deleting itself. Onboard prints it every session until it is deleted; mem then records the deletion in `[templates] exclude`, so it does not return.
+
 Skills copied from other projects keep their licence: the skill's frontmatter names the licence and the source commit, and a `LICENSE` file sits beside `SKILL.md` where the licence requires one. Refresh them from the recorded source rather than editing them, and record any local change under `metadata.modified`.

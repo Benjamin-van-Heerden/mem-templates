@@ -11,14 +11,20 @@ Copy files rather than retyping them, then adapt the names. The `notes` feature 
 
 ## New project
 
-Run from the directory that will contain the project, or in an empty repository:
+Run from the repository root, after `mem init`:
 
-1. Scaffold:
+1. Scaffold. create-next-app refuses a directory that already holds `.mem/`, `.agents/` or `AGENTS.md`, so scaffold into a temporary directory and move the result in:
 
    ```sh
-   bunx create-next-app@latest <name> --ts --tailwind --eslint --app --src-dir --import-alias "@/*" --use-bun --yes
-   cd <name>
+   bunx create-next-app@latest scaffold-tmp --ts --tailwind --eslint --app --src-dir --import-alias "@/*" --use-bun --yes --skip-install --disable-git
+   cat scaffold-tmp/.gitignore >> .gitignore
+   rm scaffold-tmp/.gitignore scaffold-tmp/AGENTS.md scaffold-tmp/CLAUDE.md
+   mv scaffold-tmp/* . && rmdir scaffold-tmp
+   sed -i '' "s/\"name\": \"scaffold-tmp\"/\"name\": \"$(basename "$PWD")\"/" package.json
+   bun install
    ```
+
+   Leave `AGENTS.md` to mem, and do not add a `CLAUDE.md`: Claude Code reads `AGENTS.md`. `next dev` inserts its own Next.js block into `AGENTS.md`; commit it when it appears. On Linux, drop the `''` after `sed -i`.
 
 2. Dependencies:
 
