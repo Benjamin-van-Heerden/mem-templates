@@ -1,0 +1,1 @@
+Database access, secrets and session reads live only in modules that import `server-only`. User-scoped reads, Server Actions and Route Handlers start from `getCurrentUser()` and never trust ids sent by the client; every Server Action validates its input with the zod schema shared with its form.

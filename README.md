@@ -4,7 +4,7 @@ Project templates for [mem](https://github.com/Benjamin-van-Heerden/mem). Each t
 
 | Template | For |
 | --- | --- |
-| `nextjs-web` | Next.js App Router web application |
+| `nextjs-web` | Next.js 16 on Vercel: bun, Cache Components, Drizzle with Neon, better-auth, shadcn, Workflow and Cron |
 | `tanstack-start` | TanStack Start with Drizzle, React Query and TanStack Form |
 | `python` | Python project managed with uv |
 | `rust` | Rust crate or workspace |
@@ -32,3 +32,5 @@ A project sends improvements back with `mem template promote <memory|skill|doc> 
 ```
 
 Prefer skills over docs for framework guides: skills load when relevant, docs are read in full every session.
+
+Skills copied from other projects keep their licence: the skill's frontmatter names the licence and the source commit, and a `LICENSE` file sits beside `SKILL.md` where the licence requires one. Refresh them from the recorded source rather than editing them, and record any local change under `metadata.modified`.

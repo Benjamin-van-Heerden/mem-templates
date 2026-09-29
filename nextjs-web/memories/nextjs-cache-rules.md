@@ -1,0 +1,1 @@
+Cached server data uses `use cache` with `cacheLife` and `cacheTag` in the feature's data module, invalidated with `updateTag` after writes; never `unstable_cache` or the `dynamic`/`revalidate` segment configs.

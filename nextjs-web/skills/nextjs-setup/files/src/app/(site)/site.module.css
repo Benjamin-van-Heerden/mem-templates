@@ -1,0 +1,21 @@
+.site {
+  min-height: 100dvh;
+  background: radial-gradient(120% 80% at 50% 0%, color-mix(in oklch, var(--primary) 8%, var(--background)), var(--background));
+  color: var(--foreground);
+}
+
+.hero {
+  display: grid;
+  gap: calc(var(--spacing) * 6);
+  max-width: 48rem;
+  margin-inline: auto;
+  padding: calc(var(--spacing) * 32) calc(var(--spacing) * 6);
+  text-align: center;
+}
+
+.title {
+  font-family: var(--font-heading);
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}

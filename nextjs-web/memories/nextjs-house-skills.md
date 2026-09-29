@@ -1,0 +1,1 @@
+The house skills (nextjs, nextjs-caching, nextjs-env, drizzle-neon, better-auth, design-system, background-jobs, nextjs-setup) define this project's conventions. Where a generic skill (next-best-practices, next-cache-components, shadcn, workflow, neon-postgres, vercel-cli, react-best-practices) disagrees with them, the house skill wins.
