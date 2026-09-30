@@ -8,6 +8,8 @@ serverEnvSchema.parse(process.env);
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
+  // Enables forbidden() and unauthorized(), used by requirePermission.
+  experimental: { authInterrupts: true },
   // Stops `next dev` from writing its own agent block into AGENTS.md; mem manages AGENTS.md.
   agentRules: false,
   poweredByHeader: false,

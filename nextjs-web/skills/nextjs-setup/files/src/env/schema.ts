@@ -30,9 +30,19 @@ export const databaseEnvSchema = z.object({
   DATABASE_URL_UNPOOLED: postgresUrl,
 });
 
+// The one super admin, created or updated from these values by scripts/seed.ts on every deploy.
+export const superAdminEnvSchema = z.object({
+  SUPER_ADMIN_EMAIL: z.email(),
+  SUPER_ADMIN_NAME: z.string().trim().min(1).max(120),
+  SUPER_ADMIN_PASSWORD: z.string().min(12).max(128),
+});
+
+export const seedEnvSchema = databaseEnvSchema.extend(superAdminEnvSchema.shape);
+
 export const serverEnvSchema = z
   .object({
     ...databaseEnvSchema.shape,
+    ...superAdminEnvSchema.shape,
     NEXT_PUBLIC_APP_ENV: appEnvSchema,
     BETTER_AUTH_SECRET: z.string().min(32),
     BETTER_AUTH_URL: z.url(),

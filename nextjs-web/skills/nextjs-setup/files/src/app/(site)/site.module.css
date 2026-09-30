@@ -6,16 +6,37 @@
 
 .hero {
   display: grid;
+  justify-items: center;
   gap: calc(var(--spacing) * 6);
-  max-width: 48rem;
+  max-width: 44rem;
   margin-inline: auto;
-  padding: calc(var(--spacing) * 32) calc(var(--spacing) * 6);
+  padding: calc(var(--spacing) * 28) calc(var(--spacing) * 6);
   text-align: center;
+}
+
+.logo {
+  width: calc(var(--spacing) * 14);
+  height: auto;
 }
 
 .title {
   font-family: var(--font-heading);
-  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-size: clamp(2.25rem, 6vw, 4rem);
   line-height: 1.05;
   letter-spacing: -0.03em;
+}
+
+.lead {
+  max-width: 34rem;
+  color: var(--muted-foreground);
+  font-size: 1.125rem;
+}
+
+.auth {
+  display: grid;
+  gap: calc(var(--spacing) * 6);
+  width: 100%;
+  max-width: 24rem;
+  margin-inline: auto;
+  padding: calc(var(--spacing) * 24) calc(var(--spacing) * 6);
 }
