@@ -8,11 +8,12 @@ Run every command from the repository root. Needs bun and a local Postgres (`cre
 
 If `package.json` already exists, the app was scaffolded before `mem init`: skip the commands, delete `CLAUDE.md` if create-next-app made one, remove the `<!-- BEGIN:nextjs-agent-rules -->` … `<!-- END:nextjs-agent-rules -->` block from `AGENTS.md`, and continue with the last paragraph.
 
-Otherwise scaffold into a temporary directory (create-next-app refuses a directory that already holds `.mem/`, `.agents/` or `AGENTS.md`) and move the result in. `--no-agents-md` stops create-next-app from writing its own `AGENTS.md` and `CLAUDE.md`: mem owns `AGENTS.md`, and Claude Code reads it without a `CLAUDE.md`.
+Otherwise scaffold into a temporary directory (create-next-app refuses a directory that already holds `.mem/`, `.agents/` or `AGENTS.md`) and move the result in, keeping a README the repository already has. `--no-agents-md` stops create-next-app from writing its own `AGENTS.md` and `CLAUDE.md`: mem owns `AGENTS.md`, and Claude Code reads it without a `CLAUDE.md`.
 
 ```sh
 bunx create-next-app@latest scaffold-tmp --ts --tailwind --eslint --app --src-dir --import-alias "@/*" --use-bun --yes --skip-install --disable-git --no-agents-md
 cat scaffold-tmp/.gitignore >> .gitignore && rm scaffold-tmp/.gitignore
+[ -e README.md ] && rm scaffold-tmp/README.md
 mv scaffold-tmp/* . && rmdir scaffold-tmp
 bun -e 'const f = "package.json"; const p = await Bun.file(f).json(); p.name = require("path").basename(process.cwd()); await Bun.write(f, JSON.stringify(p, null, 2) + "\n")'
 bun install
@@ -61,7 +62,7 @@ Done when: `src/env/`, `src/db/`, `src/features/`, `src/proxy.ts`, `scripts/` an
 bun -e 'const f = "package.json"; const p = await Bun.file(f).json(); p.scripts = { dev: "next dev", build: "bun scripts/migrate.ts && next build", start: "next start", lint: "eslint", typecheck: "next typegen && tsc --noEmit", "db:generate": "drizzle-kit generate", "db:migrate": "bun scripts/migrate.ts", "db:studio": "drizzle-kit studio", "auth:schema": "bun --conditions=react-server scripts/auth-schema.ts" }; await Bun.write(f, JSON.stringify(p, null, 2) + "\n")'
 ```
 
-In `.gitignore`, add `!.env.example` on the line after `.env*`, and add `/.workflow-data/`.
+In `.gitignore`, add `!.env.example` on the line after `.env*`, and add `/.workflow-data/` and `/.swc` (the first build adds `/.swc` itself otherwise).
 
 Done when: `git check-ignore .env.example` prints nothing, and `git check-ignore .env.local` prints `.env.local`.
 
