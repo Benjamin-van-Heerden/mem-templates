@@ -1,6 +1,6 @@
 ---
 name: nextjs-setup
-description: Set up a new Next.js project on this template's stack (bun, Next 16 with Cache Components, Drizzle, Postgres/Neon, better-auth, shadcn, Workflow, Vercel), or add a missing piece of it to an existing one. Contains verified starter files. Use when creating the project, or when env, db, auth, proxy, cron or workflow wiring is missing.
+description: The verified starter files for this template's stack (bun, Next 16 with Cache Components, Drizzle, Postgres/Neon, better-auth, shadcn, Workflow, Vercel), how to add a missing piece to an existing project, and how to deploy on Vercel. Use when env, db, auth, proxy, cron or workflow wiring is missing, when deploying, or when following the template's setup.
 ---
 
 # Project Setup
@@ -11,79 +11,17 @@ Copy files rather than retyping them, then adapt the names. The `notes` feature 
 
 ## New project
 
-Run from the repository root, after `mem init`:
+A new project is set up by the template's setup: `mem init --template nextjs-web` puts it in `.mem/setup.md`, and onboard walks through it step by step. Its steps copy the files below, and `files/` is what they copy.
 
-1. Scaffold. create-next-app refuses a directory that already holds `.mem/`, `.agents/` or `AGENTS.md`, so scaffold into a temporary directory and move the result in:
+## What `files/` contains
 
-   ```sh
-   bunx create-next-app@latest scaffold-tmp --ts --tailwind --eslint --app --src-dir --import-alias "@/*" --use-bun --yes --skip-install --disable-git
-   cat scaffold-tmp/.gitignore >> .gitignore
-   rm scaffold-tmp/.gitignore scaffold-tmp/AGENTS.md scaffold-tmp/CLAUDE.md
-   mv scaffold-tmp/* . && rmdir scaffold-tmp
-   sed -i '' "s/\"name\": \"scaffold-tmp\"/\"name\": \"$(basename "$PWD")\"/" package.json
-   bun install
-   ```
-
-   Leave `AGENTS.md` to mem, and do not add a `CLAUDE.md`: Claude Code reads `AGENTS.md`. The copied `next.config.ts` sets `agentRules: false`, which stops `next dev` from writing its own block into `AGENTS.md`. If the project was scaffolded before `mem init`, delete create-next-app's `CLAUDE.md` and the `<!-- BEGIN:nextjs-agent-rules -->` block from `AGENTS.md`. On Linux, drop the `''` after `sed -i`.
-
-2. Dependencies:
-
-   ```sh
-   bun add drizzle-orm pg better-auth zod server-only workflow @vercel/functions react-hook-form @hookform/resolvers
-   bun add -d drizzle-kit @types/pg @types/bun auth @next/env@<same version as next>
-   ```
-
-   `auth` is better-auth's CLI package; keep it on the same version as `better-auth`.
-
-3. shadcn:
-
-   ```sh
-   bunx shadcn@latest init -d --base radix
-   bunx shadcn@latest add button input label field card
-   ```
-
-4. Copy the files into the project, keeping their paths, and remove the generated home page (the public home is `src/app/(site)/page.tsx`):
-
-   ```sh
-   cp -R .agents/skills/nextjs-setup/files/. .
-   rm src/app/page.tsx
-   ```
-
-   `files/src/app/layout.tsx` replaces the generated root layout, whose `--font-geist-*` variable names break the shadcn tokens. In `src/app/globals.css`, change `--font-mono: var(--font-geist-mono);` to `--font-mono: var(--font-mono);`.
-
-5. `package.json` scripts:
-
-   ```json
-   {
-     "dev": "next dev",
-     "build": "bun scripts/migrate.ts && next build",
-     "start": "next start",
-     "lint": "eslint",
-     "typecheck": "next typegen && tsc --noEmit",
-     "db:generate": "drizzle-kit generate",
-     "db:migrate": "bun scripts/migrate.ts",
-     "db:studio": "drizzle-kit studio",
-     "auth:schema": "bun --conditions=react-server scripts/auth-schema.ts"
-   }
-   ```
-
-6. `.gitignore`: add `!.env.example` below the generated `.env*` line, and add `/.workflow-data/`.
-
-7. Local environment: `createdb <name>`, `cp .env.example .env.local`, then fill in both database URLs, `BETTER_AUTH_SECRET` (`openssl rand -hex 32`) and `CRON_SECRET` (`openssl rand -hex 16`).
-
-8. Generate the auth tables and the first migration. `src/db/schema/index.ts` re-exports `notes.ts`, which references the generated `user` table, so bootstrap with auth alone:
-
-   ```sh
-   echo 'export {};' > src/db/schema/auth.ts
-   echo 'export * from "./auth";' > src/db/schema/index.ts
-   bun run auth:schema
-   printf 'export * from "./auth";\nexport * from "./notes";\n' > src/db/schema/index.ts
-   bun run db:generate && bun run db:migrate
-   ```
-
-9. Verify: `bun run typecheck && bun run build`, then `bun run start`. Check that `/dashboard` redirects to `/login`, sign-up works (`POST /api/auth/sign-up/email`, or a sign-up form), and the dashboard renders the user.
-
-10. Replace the example: rename `notes` to the first real feature, set the title and description in the root layout, and set the brand tokens in `globals.css` (see `design-system`).
+- `next.config.ts`: Cache Components, `agentRules: false` (keeps an agent-run `next dev` out of `AGENTS.md`), Workflow, and the env schemas parsed so a bad environment fails the build.
+- `vercel.json`: bun install and build, the example cron.
+- `.env.example`, `src/env/*`: the typed environment (`nextjs-env`).
+- `drizzle.config.ts`, `src/db/*`, `scripts/migrate.ts`: the database and migrations (`drizzle-neon`).
+- `src/features/auth/*`, `src/app/api/auth/[...all]/route.ts`, `src/proxy.ts`, `scripts/auth-schema.ts`, `src/app/(site)/login/`: auth (`better-auth`).
+- `src/app/layout.tsx`, `src/app/(site)/*`, `src/app/(app)/*`: the root layout with font variables, the public and signed-in route groups (`design-system`).
+- `src/features/notes/*`, `src/app/(app)/dashboard/page.tsx`, `src/app/api/cron/digest/route.ts`: an example feature with a cached read, a Server Action, a form, and a workflow started by cron (`nextjs-caching`, `background-jobs`). It shows a feature's shape: `data.ts` (server-only, cached reads), `actions.ts`, `schema.ts` (zod, shared with the form), components, and `<name>-workflow.ts`/`<name>-steps.ts`.
 
 ## Deploying on Vercel
 

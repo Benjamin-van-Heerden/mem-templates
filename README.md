@@ -29,10 +29,27 @@ A project sends improvements back with `mem template promote <memory|skill|doc> 
 <template>/memories/<name>.md    a project convention, added to AGENTS.md
 <template>/skills/<name>/        SKILL.md and supporting files, installed in .agents/skills/<name>/
 <template>/docs/<name>.md        a project doc, installed in .mem/docs/ and printed at every onboard
+<template>/setup.md              optional one-time setup for new projects, installed by `mem init` in .mem/setup.md
 ```
 
 Prefer skills over docs for framework guides: skills load when relevant, docs are read in full every session.
 
-A template that scaffolds code ships `docs/setup.md`: a short, one-time instruction that points the agent at the template's setup skill and ends by deleting itself. Onboard prints it every session until it is deleted; mem then records the deletion in `[templates] exclude`, so it does not return.
+## Setup
+
+A template that scaffolds code has a `setup.md`: ordered steps as checkbox headings, each ending in a "Done when" line.
+
+```markdown
+# Setup: <template>
+
+## [ ] 1. Scaffold the app
+
+Commands and instructions.
+
+Done when: what must hold before the box is ticked.
+
+## [ ] 9. Link the hosting provider (you)
+```
+
+`mem init --template <name>` copies it to `.mem/setup.md`. While that file exists, onboard puts it first and the agent works through it with the user, ticking and committing each step; it deletes the file when every step is done. Mark steps that need the user (accounts, secrets, choices) with `(you)` and put them last. Keep the knowledge in skills and let the steps point to them; a setup is followed once, skills are used for the life of the project. `mem template use` does not run a setup on an existing project.
 
 Skills copied from other projects keep their licence: the skill's frontmatter names the licence and the source commit, and a `LICENSE` file sits beside `SKILL.md` where the licence requires one. Refresh them from the recorded source rather than editing them, and record any local change under `metadata.modified`.
