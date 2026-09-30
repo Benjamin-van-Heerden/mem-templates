@@ -88,7 +88,7 @@ bun -e '
 const [pooled, direct] = process.argv.slice(1);
 const hex = (n) => [...crypto.getRandomValues(new Uint8Array(n))].map((b) => b.toString(16).padStart(2, "0")).join("");
 let env = await Bun.file(".env.local").text();
-const set = (key, value) => { env = env.replace(new RegExp(`^${key}=.*$`, "m"), () => () => `${key}=${value}`); };
+const set = (key, value) => { env = env.replace(new RegExp(`^${key}=.*$`, "m"), () => `${key}=${value}`); };
 set("DATABASE_URL", pooled); set("DATABASE_URL_UNPOOLED", direct);
 set("BETTER_AUTH_SECRET", hex(32)); set("CRON_SECRET", hex(16)); set("SUPER_ADMIN_PASSWORD", hex(12));
 await Bun.write(".env.local", env);
