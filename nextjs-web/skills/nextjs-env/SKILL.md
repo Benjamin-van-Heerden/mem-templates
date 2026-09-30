@@ -45,6 +45,7 @@ export const serverEnv = serverEnvSchema.parse(process.env)
   RESEND_API_KEY: optional(z.string().min(1)),
   ```
 
+- **Required groups**: the database URLs (`databaseEnvSchema`), the auth secret and URL, `CRON_SECRET`, and the super admin (`superAdminEnvSchema`: `SUPER_ADMIN_EMAIL`, `SUPER_ADMIN_NAME`, `SUPER_ADMIN_PASSWORD`, read by `scripts/seed.ts` through `seedEnvSchema`).
 - **Environment names follow mem's branches**: `NEXT_PUBLIC_APP_ENV` is `development`, `staging` or `production`. Staging and production refuse local URLs and require HTTPS (`superRefine`). Put cross-variable checks there or at the bottom of `server.ts`, for example that `BETTER_AUTH_URL` matches `NEXT_PUBLIC_APP_URL`.
 
 ## Adding a variable
@@ -52,7 +53,7 @@ export const serverEnv = serverEnvSchema.parse(process.env)
 1. Add it to the right schema in `schema.ts` with the strictest type that fits (`z.url()`, `z.email()`, `z.enum`, `.min(32)` for secrets).
 2. For a client variable, also add the literal line to `client.ts`.
 3. Add it to `.env.example` with a comment, and to your `.env.local`.
-4. Add it in Vercel for each environment (`vercel env add NAME production`; for staging, the Preview environment scoped to mem's staging branch, `test` by default), then `vercel env pull .env.local` to sync.
+4. Add it in Vercel's Production environment: `printf '%s' "<value>" | vercel env add NAME production --yes`. Keep `.env.local` pointing at development values; do not `vercel env pull` over it.
 5. Read it as `serverEnv.NAME` or `clientEnv.NAME`.
 
 ## Loading `.env` files

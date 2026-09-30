@@ -1,1 +1,1 @@
-Schema changes ship as generated Drizzle migrations and must be additive: every deploy migrates before its code is live, so a rename or drop takes two deploys.
+Schema changes ship as generated Drizzle migrations and must be additive: every deploy migrates, then runs the idempotent `scripts/seed.ts`, before its code is live, so a rename or drop takes two deploys and seed data is written as upserts.

@@ -29,12 +29,13 @@ Not included, because tools generate them for their current version: `src/compon
 
 ## Deploying on Vercel
 
-1. `vercel link`, then set the project to install with bun. The committed `vercel.json` sets `installCommand` and `buildCommand`; also set a `regions` entry near the database.
-2. Install Neon from the Vercel Marketplace and connect it to the project. It provides `DATABASE_URL` and `DATABASE_URL_UNPOOLED`.
-3. Create a `staging` branch in Neon. In Vercel's Preview environment, scoped to mem's staging git branch (`test` unless the project configured another), set that Neon branch's two URLs.
-4. For each environment, set `NEXT_PUBLIC_APP_ENV` (`staging` / `production`), `NEXT_PUBLIC_APP_URL` and `BETTER_AUTH_URL` (the same HTTPS URL), `BETTER_AUTH_SECRET` (a different one per environment) and `CRON_SECRET`.
-5. In Vercel, set the production branch to mem's production branch (`main` by default). Releases then deploy through `mem promote staging` and `mem promote production`. Every build migrates its own database before `next build` runs.
-6. Create the first user with a hand-run script against the environment (see `better-auth`).
+Production only, deployed from GitHub; step 8 of the template's setup has the exact commands.
+
+- The Vercel project is created and linked with the CLI (`vercel project add`, `vercel link --yes --project <app>`) and connected to the GitHub repository (`vercel git connect`). Vercel's production branch is mem's production branch (`main`), so `mem promote production` deploys.
+- `vercel.json` turns off deployments of every other branch with `"git": { "deploymentEnabled": { "dev": false, "test": false } }`: branches it does not list stay enabled, so list mem's development and staging branches.
+- Production variables are set with `printf '%s' "<value>" | vercel env add <NAME> production --yes`: the Neon `main` branch URLs (`neon connection-string main --project-id <id> [--pooled]`), `NEXT_PUBLIC_APP_ENV=production`, `NEXT_PUBLIC_APP_URL` and `BETTER_AUTH_URL` (the production domain), and fresh `BETTER_AUTH_SECRET`, `CRON_SECRET` and `SUPER_ADMIN_*`.
+- Each build migrates and seeds the production database before `next build`. Follow a deployment with `vercel ls` and `vercel inspect <url> --logs`.
+- Adding staging later: a Neon `staging` branch, its URLs in the Preview environment scoped to mem's staging branch, and that branch removed from `deploymentEnabled`.
 
 ## Adding a piece to an existing project
 

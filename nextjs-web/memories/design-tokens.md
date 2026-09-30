@@ -1,1 +1,1 @@
-Style only with the design tokens in `globals.css`: no raw colours, arbitrary Tailwind values or one-off sizes. The signed-in app (`src/app/(app)`) is built from shadcn components; public pages (`src/app/(site)`) may use bespoke CSS on the same tokens.
+Style only with the design tokens in `globals.css` and the decisions in `.mem/docs/design.md`: no raw colours, arbitrary Tailwind values or one-off sizes. The signed-in app (`src/app/(app)`) is built from shadcn components inside the shared shell; public pages (`src/app/(site)`) may use bespoke CSS on the same tokens.

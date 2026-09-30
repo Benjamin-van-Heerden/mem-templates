@@ -1,0 +1,1 @@
+There is exactly one super admin, owned by the `SUPER_ADMIN_*` environment variables and synced by `scripts/seed.ts` on every build; never change it through the app or the database, and never assign the `super_admin` role. Accounts are created by admins, not by sign-up.

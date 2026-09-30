@@ -1,6 +1,6 @@
 ---
 name: design-system
-description: How this project's UI is built - one set of design tokens in globals.css, shadcn components for the signed-in app, bespoke markup and CSS for public pages, and forms with react-hook-form, zod and shadcn Field. Use when building or restyling any page, component or form.
+description: How this project's UI is built - the recorded design decisions, one set of design tokens in globals.css, the signed-in shell (icon rail, header, mobile sheet, background), shadcn components for the app, bespoke markup and CSS for public pages, and forms with react-hook-form, zod and shadcn Field. Use when building or restyling any page, component or form.
 ---
 
 # Design System
@@ -13,6 +13,10 @@ One set of design tokens, two ways of building on it:
 | Public pages: landing, marketing, docs, legal, login | `src/app/(site)/` | Bespoke components and CSS modules, Tailwind where it helps; shadcn only where it fits |
 
 The app favours consistency and density: standard components, no one-off styling. Public pages favour expression: custom layout, typography, motion, complex CSS. Both use the same tokens, so the brand, dark mode and type scale stay consistent.
+
+## Design decisions
+
+The project's choices (logo, corners, fonts, accent colour, theme, signed-in background) are recorded in `.mem/docs/design.md`, which onboard prints every session. Follow them, and update the file when the user changes one. The template's setup asks for them; for an app without the file, ask the user before styling anything that depends on them.
 
 ## Tokens
 
@@ -33,6 +37,33 @@ The tokens are CSS variables in `src/app/globals.css`: shadcn's semantic colours
 - Layout: page content in a centred `max-w-*` container, consistent `gap-*` rhythm, cards for grouped content, tables for records, the Sidebar block for navigation. Empty, loading and error states are part of every screen.
 - Data display: shadcn `Table` for records, `Chart` (recharts) with the `--chart-*` tokens, `Badge` for status, `Skeleton` inside Suspense fallbacks.
 - See the `shadcn` skill for the CLI, registries and component details.
+
+## The signed-in shell
+
+`src/app/(app)/layout.tsx` with `src/components/navigation/`:
+
+- Desktop (`md` and up): a fixed 64px icon rail (`app-sidebar.tsx`) with the logo, one lucide icon per page, a tooltip with its label, and `aria-current` for the active page; a sticky header with the page title (`page-title.tsx`), the user's email and sign-out.
+- Phones and tablets: the rail is hidden and a menu button in the header opens a left sheet (`app-mobile-menu.tsx`) with labelled items, the user and sign-out.
+- `routes.ts` is the only list of pages: `{ href, label, icon, permission? }`. Adding a page means adding it there (and its prefix to `src/proxy.ts`). Items with a `permission` show only to users who have it.
+- The shell prerenders without the session. The user-dependent parts (their email, permission-gated items) are separate server components inside `<Suspense>`, each falling back to the same client component without the user's data, so nothing shifts. The server passes only permission names to the client components; lucide icons are functions and cannot cross that boundary, so the client components read `routes.ts` themselves.
+- Content sits in a `max-w-7xl` container with `px-3 sm:px-6` and `py-4 sm:py-6 lg:py-8`. Tables that do not fit a phone hide secondary columns below `sm` and fold their content into the first column rather than scrolling sideways.
+
+**Backgrounds.** Two utilities in `globals.css`, built on tokens so they follow the brand and dark mode:
+
+```css
+@utility bg-dot-grid {
+  background-color: var(--background);
+  background-image: radial-gradient(color-mix(in oklch, var(--foreground) 14%, transparent) 1px, transparent 1.2px);
+  background-size: 18px 18px;
+}
+
+@utility bg-hatch {
+  background-color: var(--background);
+  background-image: repeating-linear-gradient(-45deg, color-mix(in oklch, var(--foreground) 7%, transparent) 0 1px, transparent 1px 7px);
+}
+```
+
+The shell's root element carries the one the project chose. Cards and the header sit on `bg-background`/`bg-card`, so content stays readable over the pattern. Adjust the density (size, alpha) as tokens, not per page.
 
 ## Public pages: bespoke
 
