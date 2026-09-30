@@ -4,6 +4,8 @@ Turns this repository into a deployed Next.js 16 app: bun, Cache Components, Dri
 
 Run commands from the repository root. Steps marked **(you)** need the user: ask for what the step names, then continue. Tick a step's box when its "Done when" holds, and commit.
 
+Never read or print secrets (passwords, connection strings, tokens) to check something: `bun run smoke` (from step 3) signs in with the credentials in `.env.local` without showing them. Checks that need eyes on a page are the user's.
+
 ## [ ] 1. Scaffold the Next.js app
 
 If `package.json` already exists, the app was scaffolded before `mem init`: skip the commands, delete `CLAUDE.md` if create-next-app made one, remove the `<!-- BEGIN:nextjs-agent-rules -->` … `<!-- END:nextjs-agent-rules -->` block from `AGENTS.md`, and continue with the last paragraph.
@@ -13,7 +15,7 @@ Otherwise scaffold into a temporary directory (create-next-app refuses a directo
 ```sh
 bunx create-next-app@latest scaffold-tmp --ts --tailwind --eslint --app --src-dir --import-alias "@/*" --use-bun --yes --skip-install --disable-git --no-agents-md
 cat scaffold-tmp/.gitignore >> .gitignore && rm scaffold-tmp/.gitignore
-[ -e README.md ] && rm scaffold-tmp/README.md
+if [ -e README.md ]; then rm scaffold-tmp/README.md; fi
 mv scaffold-tmp/* . && rmdir scaffold-tmp
 bun -e 'const f = "package.json"; const p = await Bun.file(f).json(); p.name = require("path").basename(process.cwd()); await Bun.write(f, JSON.stringify(p, null, 2) + "\n")'
 bun install
@@ -32,7 +34,7 @@ bunx shadcn@latest init -d --base radix
 bunx shadcn@latest add button input label field card sheet tooltip table select dialog badge dropdown-menu separator avatar
 ```
 
-`auth` is better-auth's CLI package and must stay on the same version as `better-auth`. Without `--base radix`, `shadcn init -d` picks Base UI.
+`auth` is better-auth's CLI package and must stay on the same version as `better-auth`. Without `--base radix`, `shadcn init -d` picks Base UI. bun blocks the install scripts of a few packages (esbuild, @swc/core, cbor-extract); builds work without them, so leave `trustedDependencies` alone. `shadcn add tooltip` suggests wrapping the app in `TooltipProvider`: the starter's rail already does, so ignore it.
 
 Done when: the commands succeeded, `@next/env` has the same version as `next`, and `components.json` has `"style": "radix-nova"`.
 
@@ -41,7 +43,7 @@ Done when: the commands succeeded, `@next/env` has the same version as `next`, a
 ```sh
 cp -R .agents/skills/nextjs-setup/files/. .
 rm src/app/page.tsx
-bun -e 'const f = "package.json"; const p = await Bun.file(f).json(); p.scripts = { dev: "next dev", build: "bun scripts/migrate.ts && bun scripts/seed.ts && next build", start: "next start", lint: "eslint", typecheck: "next typegen && tsc --noEmit", "db:generate": "drizzle-kit generate", "db:migrate": "bun scripts/migrate.ts", "db:seed": "bun scripts/seed.ts", "db:studio": "drizzle-kit studio", "auth:schema": "bun --conditions=react-server scripts/auth-schema.ts" }; await Bun.write(f, JSON.stringify(p, null, 2) + "\n")'
+bun -e 'const f = "package.json"; const p = await Bun.file(f).json(); p.scripts = { dev: "next dev", build: "bun scripts/migrate.ts && bun scripts/seed.ts && next build", start: "next start", lint: "eslint", typecheck: "next typegen && tsc --noEmit", "db:generate": "drizzle-kit generate", "db:migrate": "bun scripts/migrate.ts", "db:seed": "bun scripts/seed.ts", "db:studio": "drizzle-kit studio", "auth:schema": "bun --conditions=react-server scripts/auth-schema.ts", smoke: "bun scripts/smoke.ts" }; await Bun.write(f, JSON.stringify(p, null, 2) + "\n")'
 ```
 
 The copied `src/app/layout.tsx` names the font variables `--font-sans` and `--font-mono`, as the shadcn tokens expect: in `src/app/globals.css`, change `--font-mono: var(--font-geist-mono);` to `--font-mono: var(--font-mono);`. Then append the signed-in backgrounds to `src/app/globals.css`:
@@ -120,7 +122,15 @@ Verify it:
 bun run build && bun run start
 ```
 
-Done when: `/dashboard` without a session redirects to `/login`; `curl -X POST localhost:3000/api/auth/sign-up/email -H 'content-type: application/json' -H 'origin: http://localhost:3000' -d '{"email":"x@example.com","password":"aaaaaaaaaaaa","name":"x"}'` is refused; and the super admin can sign in at `/login` and reaches `/dashboard`.
+With the server running, in another shell:
+
+```sh
+bun run smoke    # checks the home page, the redirect, refused sign-up, super-admin sign-in, /dashboard and /admin/users
+```
+
+Stop the server afterwards (`next start` runs as `next-server`; stop it by port: `lsof -ti tcp:3000 | xargs kill`).
+
+Done when: `bun run smoke` reports all checks passed.
 
 ## [ ] 6. Branding (you)
 
@@ -129,7 +139,16 @@ Ask the user for the logo and the app's name, then the design questions, and app
 - **Logo:** an SVG is best. Save it as `public/logo.svg` (for a PNG, save `public/logo.png` and change `/logo.svg` to it in `src/components/navigation/app-sidebar.tsx`, `app-mobile-menu.tsx` and `src/app/(site)/`). Copy it to `src/app/icon.svg` (or `icon.png`) for the favicon, and delete `src/app/favicon.ico`.
 - **Name:** `metadata` in `src/app/layout.tsx` (`title.default`, `title.template`, `description`), and the sheet title in `app-mobile-menu.tsx`.
 - **Corners:** sharp (`--radius: 0rem`), slightly rounded (`0.375rem`) or rounded (`0.625rem`), in `:root` in `globals.css`.
-- **Fonts:** sans only, or a serif display face with a sans or mono interface, for example `Geist` + `Geist_Mono`, `Inter` + `JetBrains_Mono`, or `IBM_Plex_Serif` headings with `IBM_Plex_Mono` UI. Load them with `next/font/google` in `src/app/layout.tsx` as `--font-sans`, `--font-mono` and, for a display face, `--font-heading` (add `--font-heading: var(--font-heading);` in `@theme inline` in place of `var(--font-sans)`).
+- **Fonts:** sans only, or a serif display face with a sans or mono interface, for example `Geist` + `Geist_Mono`, `Inter` + `JetBrains_Mono`, or `IBM_Plex_Serif` headings with an `IBM_Plex_Mono` interface. In `src/app/layout.tsx`, load the interface face as `--font-sans` (even when it is a mono face: `--font-sans` is what the interface uses), a code face as `--font-mono`, and a display face as `--font-heading`. Fonts without a variable axis, such as IBM Plex, need explicit weights:
+
+  ```tsx
+  const sans = IBM_Plex_Mono({ variable: "--font-sans", subsets: ["latin"], weight: ["400", "500", "600"] });
+  const mono = IBM_Plex_Mono({ variable: "--font-mono", subsets: ["latin"], weight: ["400", "500"] });
+  const heading = IBM_Plex_Serif({ variable: "--font-heading", subsets: ["latin"], weight: ["400", "600"] });
+  // <html className={`${sans.variable} ${mono.variable} ${heading.variable} antialiased`}>
+  ```
+
+  `@theme inline` in `globals.css` already maps `--font-sans: var(--font-sans)`; those lines point Tailwind at the variables above and need no change, except `--font-heading: var(--font-sans);`, which becomes `--font-heading: var(--font-heading);` when there is a display face.
 - **Accent colour:** set `--primary` (and `--ring`, and `--sidebar-primary`) in `:root` and `.dark` to the brand colour in `oklch()`, with `--primary-foreground` readable on it.
 - **Light, dark or both:** for dark only, add `className="dark"` to `<html>` in `src/app/layout.tsx`; for both, add a theme toggle (`next-themes`) with the user.
 
@@ -156,15 +175,17 @@ Done when: both pages look right to the user at desktop and phone widths, in the
 
 ## [ ] 8. Deploy to production
 
-Only production deploys for now; previews and staging can come later. The repository must be on GitHub, and everything committed and pushed.
+Only production deploys for now; previews and staging can come later. The repository must be on GitHub, in an account or organization where Vercel's GitHub app is installed with access to it (usually the company organization), and everything committed and pushed. `vercel.json` sets `"framework": "nextjs"`: a project created before its first deploy would otherwise get the "Other" preset and answer every page with 404.
 
 ```sh
 git remote get-url origin    # the GitHub repository
 vercel whoami                # (you) if this fails: run `vercel login`
 vercel project add <app>
 vercel link --yes --project <app>
-vercel git connect           # (you) if Vercel's GitHub app lacks access to the repository, grant it
+vercel git connect           # "Failed to connect … make sure you have access": Vercel's GitHub app cannot see the repository (you: grant access, or move the repository to the organization where it is installed)
 ```
+
+`vercel link` adds a `VERCEL_OIDC_TOKEN` line to `.env.local`; leave it, the file is ignored.
 
 Set the production variables from Neon's `main` branch and new secrets. The production URL is the project's domain, `https://<app>.vercel.app` unless the user adds a custom domain:
 
@@ -180,10 +201,15 @@ add BETTER_AUTH_SECRET "$(openssl rand -hex 32)"
 add CRON_SECRET "$(openssl rand -hex 16)"
 add SUPER_ADMIN_EMAIL "<email>"
 add SUPER_ADMIN_NAME "<name>"
-add SUPER_ADMIN_PASSWORD "$(openssl rand -hex 12)"
 ```
 
-Tell the user the production super admin password lives in Vercel's environment settings (`vercel env pull` retrieves it), and that changing it there and redeploying rotates it.
+**(you)** The user sets the production super admin password themselves, so no agent handles it and it is not lost: Vercel stores team variables as sensitive, and they cannot be read back. Ask them to run this in their own terminal, which prompts for the value, and to keep the password in their password manager:
+
+```sh
+vercel env add SUPER_ADMIN_PASSWORD production --sensitive
+```
+
+Changing it later and redeploying (`vercel redeploy <production url>`) rotates it; the build's seed updates the account.
 
 Deploy through mem's release flow, which pushes the production branch that Vercel builds:
 
@@ -194,7 +220,7 @@ mem promote production
 
 Follow each command's instructions. Watch the build with `vercel ls` and `vercel inspect <deployment url> --logs`. The build migrates and seeds the production database before `next build`.
 
-Done when: the production URL serves the home page, and the super admin signs in there.
+Done when: the production URL serves the home page, `/dashboard` there redirects to `/login`, and **(you)** the user signs in there as the super admin (or runs `SUPER_ADMIN_EMAIL=… SUPER_ADMIN_NAME=… SUPER_ADMIN_PASSWORD=… bun run smoke https://<app>.vercel.app` in their shell).
 
 ## [ ] 9. Migrations and seed data
 
@@ -204,7 +230,7 @@ Every build runs `bun scripts/migrate.ts && bun scripts/seed.ts && next build` a
 - `scripts/seed.ts` runs in one transaction and must stay idempotent. It keeps the super admin in sync with `SUPER_ADMIN_*`; add other reference data below that call, with upserts.
 - By hand: `bun run db:generate` after a schema change, `bun run db:migrate`, `bun run db:seed`, and `bun run db:studio` to browse the development branch.
 
-Done when: after changing `SUPER_ADMIN_PASSWORD` in `.env.local`, `bun run db:seed` makes the old password fail and the new one work at `/login` (then tell the user the new one).
+Done when: after replacing `SUPER_ADMIN_PASSWORD` in `.env.local` with a new generated value (with a script, without printing it) and running `bun run db:seed`, `bun run smoke` against the running app passes with the new password. Tell the user the local password is `SUPER_ADMIN_PASSWORD` in `.env.local`.
 
 ## [ ] 10. Roles and user management
 
@@ -221,7 +247,9 @@ const grants: Record<Role, readonly Permission[]> = {
 
 Pages and actions call `requirePermission("…")`; navigation items take `permission` in `src/components/navigation/routes.ts`. No admin, not even the super admin, can change the super admin through the app or the auth API: the guard in `src/features/auth/server.ts` refuses it.
 
-Done when: signed in as the super admin, `/admin/users` creates a member; the member can sign in and use `/dashboard` but gets "No access" on `/admin/users` and does not see Users in the navigation.
+A page that fails `requirePermission` renders `src/app/forbidden.tsx` inside the streamed page, so it answers 200 with "No access" rather than 403.
+
+Done when: **(you)** signed in as the super admin, the user creates a member through the form on `/admin/users`; the member can sign in and use `/dashboard`, gets "No access" on `/admin/users`, and does not see Users in the navigation.
 
 ## [ ] 11. Dashboard and navigation (you)
 
@@ -240,4 +268,4 @@ mem promote staging
 mem promote production
 ```
 
-Done when: production serves the branded app, the super admin signs in on production and can create a user there, and `.mem/docs/design.md` is committed. Then delete this file, commit and push: the project is set up.
+Done when: `bun run smoke` passes locally; production serves the branded app; **(you)** the user signs in on production and creates a user there (creating accounts on a live deployment is theirs to do); and `.mem/docs/design.md` is committed. Then delete this file, commit and push: the project is set up.

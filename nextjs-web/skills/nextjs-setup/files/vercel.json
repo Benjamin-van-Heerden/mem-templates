@@ -1,8 +1,21 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
   "installCommand": "bun install --frozen-lockfile",
   "buildCommand": "bun run build",
-  "regions": ["fra1"],
-  "git": { "deploymentEnabled": { "dev": false, "test": false } },
-  "crons": [{ "path": "/api/cron/digest", "schedule": "0 6 * * *" }]
+  "regions": [
+    "fra1"
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "dev": false,
+      "test": false
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/digest",
+      "schedule": "0 6 * * *"
+    }
+  ]
 }

@@ -9,7 +9,13 @@ const isLocalUrl = (value: string) => {
   return ["localhost", "127.0.0.1", "[::1]"].includes(hostname) || hostname.endsWith(".localhost");
 };
 
-const postgresUrl = z.url().refine((value) => /^postgres(ql)?:\/\//.test(value), "Use a Postgres connection URL.");
+// Neon's URLs say sslmode=require, which node-postgres already treats as verify-full while warning that this
+// will change; asking for verify-full explicitly keeps the stronger check and silences the warning. psql and the
+// neon CLI keep reading the unmodified URLs from .env.local.
+const postgresUrl = z
+  .url()
+  .refine((value) => /^postgres(ql)?:\/\//.test(value), "Use a Postgres connection URL.")
+  .transform((value) => value.replace(/([?&])sslmode=require\b/, "$1sslmode=verify-full"));
 
 // Treats an empty string as unset, so `KEY=` in an env file means "not configured".
 const optional = <T extends z.ZodType>(schema: T) => z.preprocess((value) => (value === "" ? undefined : value), schema.optional());

@@ -62,7 +62,7 @@ const grants: Record<Role, readonly Permission[]> = {
 ```
 
 - A new capability is a new `Permission`, granted to roles in `grants`. A new role is added to `roles`, `grants`, `assignableRoles` (if admins may hand it out) and the admin plugin's `roles`.
-- Pages and Server Actions call `await requirePermission('…')`, which renders `forbidden()` (`src/app/forbidden.tsx`) when the user lacks it. Navigation items declare `permission` in `src/components/navigation/routes.ts` so users only see what they can open. Hiding an item is not authorisation; the page's check is.
+- Pages and Server Actions call `await requirePermission('…')`, which renders `forbidden()` (`src/app/forbidden.tsx`) when the user lacks it. Inside a streamed page that response is a 200 with the forbidden content, not a 403. Navigation items declare `permission` in `src/components/navigation/routes.ts` so users only see what they can open. Hiding an item is not authorisation; the page's check is.
 - better-auth's own admin API (`/api/auth/admin/*`) is open to `super_admin` and `admin` (`adminRoles`), with its own checks.
 
 ## The super admin

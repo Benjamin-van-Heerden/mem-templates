@@ -17,6 +17,8 @@ Neon provides two URLs for the same database:
 - `DATABASE_URL`: pooled (PgBouncer, transaction mode), used by the app.
 - `DATABASE_URL_UNPOOLED`: direct, used by migrations, `drizzle-kit`, dumps and anything that needs session state (`SET`, session advisory locks, `LISTEN/NOTIFY`).
 
+`postgresUrl` in `src/env/schema.ts` rewrites Neon's `sslmode=require` to `sslmode=verify-full` when the app reads the URL: node-postgres already treats `require` as `verify-full` but warns that this will change, and `.env.local` keeps Neon's form for `psql` and the `neon` CLI.
+
 Over the pooled URL, session state does not survive the transaction. Use `pg_advisory_xact_lock` inside a transaction, not `pg_advisory_lock`. Locally both variables point at the same database.
 
 The client keeps a small pool per function instance and calls `attachDatabasePool(pool)` from `@vercel/functions`, so Vercel Fluid compute closes idle connections before suspending an instance:
