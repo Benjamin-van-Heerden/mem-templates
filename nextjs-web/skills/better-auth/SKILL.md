@@ -14,6 +14,7 @@ src/features/auth/permissions.ts   roles, permissions and hasPermission / permis
 src/features/auth/super-admin.ts   syncSuperAdmin, used by scripts/seed.ts
 src/features/auth/client.ts        authClient for Client Components
 src/features/users/*               user management behind users:manage
+src/db/repositories/users.ts       the app's reads of the user table
 src/app/api/auth/[...all]/route.ts better-auth's HTTP handler
 src/proxy.ts                       optimistic redirect for protected URL prefixes
 src/db/schema/auth.ts              generated tables; never edit by hand
@@ -76,7 +77,7 @@ There is exactly one `super_admin`, and the environment owns it:
 
 ## User management
 
-`src/features/users/`: `data.ts` (`getUsers`: permission check, then an unexported cached read tagged `users`), `schema.ts` (zod, shared with the forms; roles limited to `assignableRoles`), `actions.ts` (create, change role, ban, unban). Every action goes through one helper:
+`src/features/users/`: `data.ts` (`getUsers`: permission check, then an unexported cached read tagged `users` through `src/db/repositories/users.ts`), `schema.ts` (zod, shared with the forms; roles limited to `assignableRoles`), `actions.ts` (create, change role, ban, unban). Every action goes through one helper:
 
 ```ts
 async function run<S extends z.ZodType>(schema: S, input: unknown, call: (data: z.infer<S>, requestHeaders: Headers) => Promise<unknown>): Promise<ActionResult> {

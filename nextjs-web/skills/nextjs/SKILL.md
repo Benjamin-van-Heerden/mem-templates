@@ -36,9 +36,9 @@ Related house skills:
 ## Project Structure
 
 - `src/app/`: routes, layouts, route handlers and route-specific UI.
-- `src/features/<domain>/`: a domain's server data, Server Actions, schemas and components, for example `src/features/notes/{data,actions,schema}.ts` and `note-form.tsx`.
+- `src/features/<domain>/`: a domain's cached reads, Server Actions, schemas and components, for example `src/features/notes/{data,actions,schema}.ts` and `note-form.tsx`.
 - `src/components/ui/`: shadcn components. `src/components/` also holds shared app components.
-- `src/db/`, `src/env/`: the database client and schema, and the typed environment.
+- `src/db/`, `src/env/`: the database client, schema and repositories (`src/db/repositories/`, where every query lives), and the typed environment.
 - `src/proxy.ts`, `next.config.ts`, `public/`, `.env*` (never commit secrets).
 
 Inside `app/`, folders define route segments. A folder is routable only once it has `page.tsx` or `route.ts`. Special files:
@@ -222,7 +222,7 @@ export async function GET(_request: Request, ctx: RouteContext<'/api/users/[id]'
 
 ## Data Security
 
-- All database access lives in `server-only` modules under `src/features/<domain>/` and `src/db/`, and starts from `getCurrentUser()` when the data is user-scoped.
+- All queries live in the `server-only` repositories under `src/db/repositories/` (`drizzle-neon`). The feature modules that call them start from `getCurrentUser()` when the data is user-scoped.
 - Return narrow DTOs, not full rows. Client Component props are public: never pass rows, sessions, tokens or permission maps.
 - Only `NEXT_PUBLIC_*` variables reach the browser. Never put a secret under that prefix.
 - Do not put the only auth check in a layout; check where the data is read or changed.
@@ -247,7 +247,7 @@ export async function GET(_request: Request, ctx: RouteContext<'/api/users/[id]'
 
 - App Router only; no `pages/`.
 - Server Components by default; `'use client'` at small interactive leaves.
-- Server-only data modules per feature, starting from `getCurrentUser()`.
+- Queries in `src/db/repositories/`; server-only data modules per feature call them, starting from `getCurrentUser()`.
 - Route groups for layouts, URL prefixes for protection, `proxy.ts` for optimistic redirects only.
 - Re-check auth in every protected read, Server Action and Route Handler.
 - Suspense around request-time reads; `use cache` with tags for data worth caching.

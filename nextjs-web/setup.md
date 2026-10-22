@@ -64,9 +64,28 @@ The copied `src/app/layout.tsx` names the font variables `--font-sans` and `--fo
 
 In `.gitignore`, add `!.env.example` on the line after `.env*`, and add `/.workflow-data/` and `/.swc`.
 
+In `eslint.config.mjs`, add these two objects to the `defineConfig([...])` array, after `...nextTs,`. They keep every query in `src/db/repositories` and pages and components away from the database (`drizzle-neon`):
+
+```js
+  // Queries live in src/db/repositories (see the drizzle-neon skill); everything else calls them.
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/db/**", "src/features/auth/server.ts"],
+    rules: {
+      "no-restricted-imports": ["error", { patterns: [{ group: ["drizzle-orm", "drizzle-orm/*", "@/db/schema", "@/db/schema/*"], message: "Queries live in src/db/repositories: call a repository function instead." }] }],
+    },
+  },
+  {
+    files: ["src/**/*.tsx"],
+    rules: {
+      "no-restricted-imports": ["error", { patterns: [{ group: ["@/db/*"], message: "Pages and components read through a feature's data.ts and write through its actions.ts." }] }],
+    },
+  },
+```
+
 In `vercel.json`, make `git.deploymentEnabled` list the development and staging branches from `.mem/config.toml` (`dev` and `test` by default), so only the production branch deploys.
 
-Done when: `src/env/`, `src/db/`, `src/features/`, `src/components/navigation/`, `src/proxy.ts`, `scripts/` and `vercel.json` exist, `src/app/page.tsx` is gone, `globals.css` has no `geist` variable and has both utilities, and `git check-ignore .env.example` prints nothing.
+Done when: `src/env/`, `src/db/`, `src/features/`, `src/components/navigation/`, `src/proxy.ts`, `scripts/` and `vercel.json` exist, `src/app/page.tsx` is gone, `globals.css` has no `geist` variable and has both utilities, `git check-ignore .env.example` prints nothing, and `bun run lint` reports no errors.
 
 ## [ ] 4. Neon database
 

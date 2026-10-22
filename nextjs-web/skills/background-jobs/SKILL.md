@@ -34,9 +34,7 @@ export async function sendDigest(userId: string) {
 // src/features/notes/digest-steps.ts
 export async function countNotesSince(userId: string, hours: number) {
   'use step'
-  const since = new Date(Date.now() - hours * 3600_000)
-  const [row] = await db.select({ n: count() }).from(note).where(and(eq(note.userId, userId), gte(note.createdAt, since)))
-  return row.n
+  return notesRepo.countSince(db, userId, new Date(Date.now() - hours * 3600_000))
 }
 ```
 
@@ -55,7 +53,7 @@ const run = await start(sendDigest, [user.id])   // returns at once; run.runId i
 - **Arguments and return values are serialized.** Pass ids and plain data, not database rows with methods, class instances or connections. Steps re-read what they need.
 - **Keep steps coarse enough to be meaningful and small enough to retry cheaply.** One external call or one transaction per step is a good default.
 - **Record a job's state in our own tables** when the UI needs it (queued, running, done, failed, plus the `runId`). Set it from steps, and make the job row the guard against starting the same work twice (see `pg_advisory_xact_lock` in `drizzle-neon`).
-- **Put workflow and step files in the feature folder** (`<name>-workflow.ts`, `<name>-steps.ts`). A workflow file imports only its steps and `workflow` APIs; steps may import server-only modules such as `db`.
+- **Put workflow and step files in the feature folder** (`<name>-workflow.ts`, `<name>-steps.ts`). A workflow file imports only its steps and `workflow` APIs; steps call repositories (`drizzle-neon`), passing `db` or a transaction's `tx`.
 
 ### Time and events
 
@@ -87,8 +85,8 @@ Cron jobs are entries in `vercel.json` that call a route with GET:
 // src/app/api/cron/digest/route.ts
 export async function GET(request: Request) {
   if (request.headers.get('authorization') !== `Bearer ${serverEnv.CRON_SECRET}`) return new Response('Unauthorized', { status: 401 })
-  const users = await db.select({ id: user.id }).from(user)
-  const runs = await Promise.all(users.map((u) => start(sendDigest, [u.id])))
+  const userIds = await usersRepo.listIds(db)
+  const runs = await Promise.all(userIds.map((id) => start(sendDigest, [id])))
   return Response.json({ started: runs.length })
 }
 ```

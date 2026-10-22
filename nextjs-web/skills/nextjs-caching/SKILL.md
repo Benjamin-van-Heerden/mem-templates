@@ -17,7 +17,7 @@ Checked against `next@16.3.7`. The deeper reference is the `next-cache-component
 
 ## Cached reads
 
-Put cached reads in the feature's server-only data module. The exported function resolves the user; an unexported cached function does the query, so no caller can request another user's data by passing an id.
+Put cached reads in the feature's server-only data module. The exported function resolves the user; an unexported cached function calls the repository (`drizzle-neon`), so no caller can request another user's data by passing an id.
 
 ```ts
 import 'server-only'
@@ -34,7 +34,7 @@ async function notesByUser(userId: string) {
   'use cache'
   cacheTag(notesTag(userId))
   cacheLife('minutes')
-  return db.select().from(note).where(eq(note.userId, userId))
+  return notesRepo.listForUser(db, userId)
 }
 ```
 

@@ -14,3 +14,7 @@ if (serverEnv.NEXT_PUBLIC_APP_ENV === "development") globalForDb.pool = pool;
 attachDatabasePool(pool);
 
 export const db = drizzle(pool, { schema, casing: "snake_case" });
+
+// Repository functions take either, so a caller can run several of them in one db.transaction.
+export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+export type Db = typeof db | Tx;
