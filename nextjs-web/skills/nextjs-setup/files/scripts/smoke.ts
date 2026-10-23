@@ -1,9 +1,12 @@
+import { $ } from "bun";
+import { name } from "../package.json";
 import { superAdminEnvSchema } from "../src/env/schema";
 
 // Checks a running app end to end without a browser and without printing a secret:
-//   bun scripts/smoke.ts http://localhost:3000            (credentials from .env.local)
+//   bun scripts/smoke.ts                                   (this checkout's `bun run dev`, through portless; credentials from .env.local)
+//   bun scripts/smoke.ts http://localhost:3000            (`bun run start`)
 //   bun scripts/smoke.ts https://<app>.vercel.app          (set SUPER_ADMIN_* in the shell for production)
-const base = (process.argv[2] ?? "http://localhost:3000").replace(/\/$/, "");
+const base = (process.argv[2] ?? (await $`portless get ${name}`.text())).trim().replace(/\/$/, "");
 const admin = superAdminEnvSchema.parse(process.env);
 const headers = { "content-type": "application/json", origin: base };
 let failed = 0;

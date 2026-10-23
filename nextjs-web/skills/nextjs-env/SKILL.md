@@ -47,6 +47,7 @@ export const serverEnv = serverEnvSchema.parse(process.env)
 
 - **Required groups**: the database URLs (`databaseEnvSchema`), the auth secret and URL, `CRON_SECRET`, and the super admin (`superAdminEnvSchema`: `SUPER_ADMIN_EMAIL`, `SUPER_ADMIN_NAME`, `SUPER_ADMIN_PASSWORD`, read by `scripts/seed.ts` through `seedEnvSchema`).
 - **Environment names follow mem's branches**: `NEXT_PUBLIC_APP_ENV` is `development`, `staging` or `production`. Staging and production refuse local URLs and require HTTPS (`superRefine`). Put cross-variable checks there or at the bottom of `server.ts`, for example that `BETTER_AUTH_URL` matches `NEXT_PUBLIC_APP_URL`.
+- **In development the app URLs come from portless.** Under `bun run dev`, `next.config.ts` sets `NEXT_PUBLIC_APP_URL` and `BETTER_AUTH_URL` to `PORTLESS_URL` before the schemas parse, so each checkout gets its own URL (`nextjs-setup`). `.env.local` keeps `http://localhost:3000` for `bun run start`. Never write a portless URL into `.env.local`: it differs per worktree.
 
 ## Adding a variable
 

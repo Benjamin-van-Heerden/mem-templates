@@ -29,12 +29,12 @@ Done when: `package.json` carries the repository's name, `bun install` succeeded
 
 ```sh
 bun add drizzle-orm pg better-auth zod server-only workflow @vercel/functions react-hook-form @hookform/resolvers
-bun add -d drizzle-kit @types/pg @types/bun auth @next/env@$(bun -e 'console.log(require("next/package.json").version)')
+bun add -d drizzle-kit @types/pg @types/bun auth portless @next/env@$(bun -e 'console.log(require("next/package.json").version)')
 bunx shadcn@latest init -d --base radix
 bunx shadcn@latest add button input label field card sheet tooltip table select dialog badge dropdown-menu separator avatar
 ```
 
-`auth` is better-auth's CLI package and must stay on the same version as `better-auth`. Without `--base radix`, `shadcn init -d` picks Base UI. bun blocks the install scripts of a few packages (esbuild, @swc/core, cbor-extract); builds work without them, so leave `trustedDependencies` alone. `shadcn add tooltip` suggests wrapping the app in `TooltipProvider`: the starter's rail already does, so ignore it.
+`auth` is better-auth's CLI package and must stay on the same version as `better-auth`. `portless` serves `bun run dev` at a named HTTPS URL instead of a port (see step 5). Without `--base radix`, `shadcn init -d` picks Base UI. bun blocks the install scripts of a few packages (esbuild, @swc/core, cbor-extract); builds work without them, so leave `trustedDependencies` alone. `shadcn add tooltip` suggests wrapping the app in `TooltipProvider`: the starter's rail already does, so ignore it.
 
 Done when: the commands succeeded, `@next/env` has the same version as `next`, and `components.json` has `"style": "radix-nova"`.
 
@@ -43,7 +43,7 @@ Done when: the commands succeeded, `@next/env` has the same version as `next`, a
 ```sh
 cp -R .agents/skills/nextjs-setup/files/. .
 rm src/app/page.tsx
-bun -e 'const f = "package.json"; const p = await Bun.file(f).json(); p.scripts = { dev: "next dev", build: "bun scripts/migrate.ts && bun scripts/seed.ts && next build", start: "next start", lint: "eslint", typecheck: "next typegen && tsc --noEmit", "db:generate": "drizzle-kit generate", "db:migrate": "bun scripts/migrate.ts", "db:seed": "bun scripts/seed.ts", "db:studio": "drizzle-kit studio", "auth:schema": "bun --conditions=react-server scripts/auth-schema.ts", smoke: "bun scripts/smoke.ts" }; await Bun.write(f, JSON.stringify(p, null, 2) + "\n")'
+bun -e 'const f = "package.json"; const p = await Bun.file(f).json(); p.scripts = { dev: "portless run next dev", build: "bun scripts/migrate.ts && bun scripts/seed.ts && next build", start: "next start", lint: "eslint", typecheck: "next typegen && tsc --noEmit", "db:generate": "drizzle-kit generate", "db:migrate": "bun scripts/migrate.ts", "db:seed": "bun scripts/seed.ts", "db:studio": "drizzle-kit studio", "auth:schema": "bun --conditions=react-server scripts/auth-schema.ts", smoke: "bun scripts/smoke.ts" }; await Bun.write(f, JSON.stringify(p, null, 2) + "\n")'
 ```
 
 The copied `src/app/layout.tsx` names the font variables `--font-sans` and `--font-mono`, as the shadcn tokens expect: in `src/app/globals.css`, change `--font-mono: var(--font-geist-mono);` to `--font-mono: var(--font-mono);`. Then append the signed-in backgrounds to `src/app/globals.css`:
@@ -144,12 +144,29 @@ bun run build && bun run start
 With the server running, in another shell:
 
 ```sh
-bun run smoke    # checks the home page, the redirect, refused sign-up, super-admin sign-in, /dashboard and /admin/users
+bun run smoke http://localhost:3000    # checks the home page, the redirect, refused sign-up, super-admin sign-in, /dashboard and /admin/users
 ```
 
 Stop the server afterwards (`next start` runs as `next-server`; stop it by port: `lsof -ti tcp:3000 | xargs kill`).
 
-Done when: `bun run smoke` reports all checks passed.
+Then check development, which runs through portless. `bun run dev` serves the app at this checkout's URL, `https://<package name>.localhost:<proxy port>` (a Git worktree gets `<branch>.` in front), and `next.config.ts` points `NEXT_PUBLIC_APP_URL` and `BETTER_AUTH_URL` at it. `.env.local` keeps `http://localhost:3000` for `bun run start` and `PORTLESS=0 bun run dev`.
+
+portless needs its proxy running on this machine; one proxy serves every project. `lsof -nP -iTCP:1355 -sTCP:LISTEN` shows it when it runs on the usual port. If nothing listens, **(you)** the user starts it once, since it adds a local certificate authority to the system trust store and may ask for their password:
+
+```sh
+bunx portless proxy start --port 1355 --https
+```
+
+Port 1355 needs no sudo; a later start, after a reboot, reuses the same settings. Then, with `bun run dev` running in the background:
+
+```sh
+bunx portless get <package name>   # this checkout's URL
+bun run smoke                       # without a URL it checks that one
+```
+
+Stop `bun run dev` afterwards.
+
+Done when: `bun run smoke http://localhost:3000` passes against `bun run start`, and `bun run smoke` passes against `bun run dev`.
 
 ## [ ] 6. Branding (you)
 

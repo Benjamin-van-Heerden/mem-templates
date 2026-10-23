@@ -40,7 +40,7 @@ export const auth = betterAuth({
 
 - `disableSignUp`: accounts come from the seed (the super admin) and from `/admin/users`.
 - `rateLimit.storage: 'database'`: serverless instances share no memory, so in-memory rate limits do not hold.
-- `BETTER_AUTH_URL` must equal `NEXT_PUBLIC_APP_URL` (`src/env/server.ts` enforces it). Other origins that must reach the auth API go in `trustedOrigins`.
+- `BETTER_AUTH_URL` must equal `NEXT_PUBLIC_APP_URL` (`src/env/server.ts` enforces it). Under `bun run dev` both are the checkout's portless URL, so better-auth accepts requests from it and refuses `http://localhost:3000`. Other origins that must reach the auth API go in `trustedOrigins`.
 
 ## Roles and permissions
 
