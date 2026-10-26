@@ -1,0 +1,20 @@
+[package]
+name = "myapp-ui"
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+
+[dependencies]
+gpui-kit.workspace = true
+myapp-core.workspace = true
+
+[dev-dependencies]
+gpui-kit = { workspace = true, features = ["test-support"] }
+
+# Headless rendering needs the process's main thread, so this test target has its own main.
+[[test]]
+name = "screenshots"
+harness = false
+
+[lints]
+workspace = true

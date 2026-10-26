@@ -1,0 +1,18 @@
+[package]
+name = "myapp"
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+
+[features]
+# Subsecond hot-patching of render code; run with `dx serve --hot-patch` (see the gpui-hot-reload skill).
+hot-reload = ["dep:gpui-hot-reload"]
+
+[dependencies]
+gpui-kit.workspace = true
+myapp-ui.workspace = true
+# Same crate gpui-kit uses; only here to switch on its hot-reload feature. Keep the version equal to gpui-kit's pin.
+gpui-hot-reload = { package = "gpui-pre", version = "=0.3.10", features = ["hot-reload"], optional = true }
+
+[lints]
+workspace = true

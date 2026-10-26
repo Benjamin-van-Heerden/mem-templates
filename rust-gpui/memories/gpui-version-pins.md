@@ -1,0 +1,1 @@
+Apps depend on `gpui-kit` alone, pinned exactly (`"=x.y.z"`); it pins the matching `gpui-pre` crates. Bump gpui-kit (and any direct `gpui-pre` pin, such as the hot-reload one) together and only when the user agrees; afterwards `Cargo.lock` must hold exactly one `gpui-pre`, and the `gpui` skill's examples are rechecked with its `scripts/check_examples.py`.

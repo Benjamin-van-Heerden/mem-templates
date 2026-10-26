@@ -1,0 +1,38 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+default-members = ["crates/app"]
+
+[workspace.package]
+edition = "2024"
+version = "0.1.0"
+publish = false
+
+[workspace.dependencies]
+# Exact pins: gpui-kit pins gpui-pre (GPUI) exactly, and both move together. See the gpui skill.
+gpui-kit = "=0.8.1"
+anyhow = "1"
+tracing = "0.1"
+myapp-core = { path = "crates/core" }
+myapp-ui = { path = "crates/ui" }
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+dbg_macro = "warn"
+todo = "warn"
+
+# Small target/ and fast rebuilds; see the rust-build-performance skill.
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+
+# GPUI's layout engine and SVG renderer run every frame; optimise them even in debug builds.
+[profile.dev.package.taffy]
+opt-level = 3
+
+[profile.dev.package.resvg]
+opt-level = 3

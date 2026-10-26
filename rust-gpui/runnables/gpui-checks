@@ -1,0 +1,31 @@
+#!/bin/sh
+# Checks the GPUI pins at every `mem onboard`: one gpui-pre in Cargo.lock, at the
+# version the template's gpui skill was written for. Reads files only, no cargo.
+
+skills_version="0.3.10"
+
+if [ ! -f Cargo.lock ] || ! grep -q '^name = "gpui-pre"$' Cargo.lock; then
+	echo "No gpui-pre in Cargo.lock; nothing to check."
+	exit 0
+fi
+
+versions=$(awk '/^name = "gpui-pre"$/ { getline; gsub(/version = |"/, ""); print }' Cargo.lock | sort -u)
+count=$(printf '%s\n' "$versions" | wc -l | tr -d ' ')
+kit=$(awk '/^name = "gpui-kit"$/ { getline; gsub(/version = |"/, ""); print; exit }' Cargo.lock)
+
+if [ "$count" -gt 1 ]; then
+	echo "⚠️ Cargo.lock holds $count versions of gpui-pre ($(printf '%s' "$versions" | tr '\n' ' ')): two copies of GPUI. Align every gpui-pre pin with gpui-kit's (\`cargo tree -i gpui-pre\` shows who pulls each), then build in the background."
+	exit 0
+fi
+
+if [ "$versions" != "$skills_version" ]; then
+	echo "⚠️ gpui-pre is $versions (gpui-kit ${kit:-?}), but the gpui skill was written for $skills_version. Its examples and rules may be wrong for this version: run \`python3 .agents/skills/gpui/scripts/check_examples.py <scratch dir> ${kit:-<gpui-kit version>}\` in the background, fix what fails, and tell the user the skill needs promoting."
+	exit 0
+fi
+
+if ! grep -Eq 'gpui-kit[[:space:]]*=[[:space:]]*(\{[^}]*version[[:space:]]*=[[:space:]]*)?"=' Cargo.toml; then
+	echo "⚠️ gpui-kit is not pinned exactly in Cargo.toml. Pin it as \`gpui-kit = \"=${kit:-x.y.z}\"\`: its releases are weekly and often breaking."
+	exit 0
+fi
+
+echo "gpui-kit $kit, gpui-pre $versions: one copy, matching the gpui skill."
