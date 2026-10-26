@@ -7,7 +7,8 @@ Project templates for [mem](https://github.com/Benjamin-van-Heerden/mem). Each t
 | `nextjs-web` | Next.js 16 on Vercel: bun, Cache Components, Drizzle with Neon, better-auth, shadcn, Workflow and Cron |
 | `tanstack-start` | TanStack Start with Drizzle, React Query and TanStack Form |
 | `python` | Python project managed with uv |
-| `rust` | Rust crate or workspace |
+| `rust` | Rust crate or workspace: fast iteration, a small `target/`, crate boundaries |
+| `rust-gpui` | Desktop app with GPUI and gpui-kit, macOS first; use with `rust` (`--template rust --template rust-gpui`) |
 | `phoenix` | Elixir and Phoenix web application |
 
 ## Use
@@ -29,10 +30,11 @@ A project sends improvements back with `mem template promote <memory|skill|doc> 
 <template>/memories/<name>.md    a project convention, added to AGENTS.md
 <template>/skills/<name>/        SKILL.md and supporting files, installed in .agents/skills/<name>/
 <template>/docs/<name>.md        a project doc, installed in .mem/docs/ and printed at every onboard
+<template>/runnables/<name>      a script installed in .mem/runnables/ and run at every onboard; its output joins the context
 <template>/setup.md              optional one-time setup for new projects, installed by `mem init` in .mem/setup.md
 ```
 
-Prefer skills over docs for framework guides: skills load when relevant, docs are read in full every session.
+Prefer skills over docs for framework guides: skills load when relevant, docs are read in full every session. Use a runnable for checks that depend on the project's state, such as the size of `target/`. Keep it fast (onboard stops it after 15 seconds) and quiet: one status line, with ⚠️ lines and the fix only when something is wrong.
 
 ## Setup
 
