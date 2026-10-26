@@ -107,6 +107,6 @@ Done when: the user confirmed the name, bundle id and icon, the bundle opened, a
 
 ## [ ] 8. Hot reload (you, optional)
 
-Ask whether the user wants hot reload while iterating on UI. It needs dioxus-cli 0.7.10 installed for their account (`cargo binstall dioxus-cli@0.7.10`), and it's experimental with these GPUI snapshots. If yes, follow the `gpui-hot-reload` skill: install, run `dx serve --hot-patch`, change a string in `MainView::render`, and check that the window updates without a restart. Record the result in that skill's status section.
+Ask whether the user wants hot reload while iterating on UI. It needs dioxus-cli 0.7.10 installed for their account (`cargo binstall -y dioxus-cli@0.7.10`), and it adds about 2.5 GB under `target/` for `dx`'s own build. If yes, follow the `gpui-hot-reload` skill: install, run `dx serve --hot-patch` in the background, change a string in `MainView::render`, and check that `dx` reports the hot-patch and the window updates without a restart. Never change a struct's fields while it runs: that crashes the patched app.
 
-Done when: the user declined, or a render edit was patched into the running app (or the failure is recorded in the skill).
+Done when: the user declined, or a render edit was patched into the running app.
