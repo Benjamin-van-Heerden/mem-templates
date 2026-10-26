@@ -1,0 +1,60 @@
+#!/bin/sh
+# Reports the size of target/ and drift from the rust template's build
+# defaults at every `mem onboard`. It reads files only: no cargo invocations,
+# so it stays fast and never waits on a build lock.
+
+limit_gb=10
+
+if [ ! -f Cargo.toml ]; then
+	echo "No Cargo.toml at the repository root; nothing to check."
+	exit 0
+fi
+
+warnings=""
+warn() {
+	warnings="$warnings
+⚠️ $1"
+}
+
+# A section's key holds the value when `key = value` appears under `[section]`.
+has_setting() {
+	awk -v section="$1" -v pattern="$2" '
+		/^[[:space:]]*\[/ { current = $0; gsub(/[[:space:]]/, "", current); next }
+		current == section && $0 ~ pattern { found = 1 }
+		END { exit !found }
+	' Cargo.toml
+}
+
+if ! has_setting '[profile.dev]' '^[[:space:]]*debug[[:space:]]*=[[:space:]]*"line-tables-only"'; then
+	warn "Cargo.toml lacks \`debug = \"line-tables-only\"\` under [profile.dev]. Add it back (see the rust-build-performance skill): full debug info makes target/ larger and links slower."
+fi
+if ! has_setting '[profile.dev.package."*"]' '^[[:space:]]*debug[[:space:]]*=[[:space:]]*(false|0|"none")'; then
+	warn "Cargo.toml lacks \`debug = false\` under [profile.dev.package.\"*\"]. Add it back (see the rust-build-performance skill): dependency debug info is most of target/'s size."
+fi
+
+toolchain=""
+if [ -f rust-toolchain.toml ]; then
+	toolchain=$(sed -n 's/^[[:space:]]*channel[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' rust-toolchain.toml | head -n 1)
+fi
+if [ -n "$toolchain" ] && command -v rustup >/dev/null 2>&1; then
+	if ! rustup toolchain list 2>/dev/null | grep -q "^$toolchain[- ]"; then
+		warn "rust-toolchain.toml pins $toolchain, which is not installed. Tell the user; the next cargo command will download it (several hundred MB)."
+	fi
+fi
+
+target=${CARGO_TARGET_DIR:-target}
+size="no target/ yet"
+if [ -d "$target" ]; then
+	kb=$(du -sk "$target" 2>/dev/null | cut -f1)
+	gb=$(awk -v kb="$kb" 'BEGIN { printf "%.1f", kb / 1048576 }')
+	size="$target/ is $gb GB (limit $limit_gb GB)"
+	if awk -v kb="$kb" -v limit="$limit_gb" 'BEGIN { exit !(kb > limit * 1048576) }'; then
+		warn "$target/ is $gb GB, over the $limit_gb GB limit: stale artifacts from older dependency versions and profiles. Before starting other work, and while no cargo command is running, run \`cargo clean\`, then run the first build in the background."
+	fi
+fi
+
+if [ -z "$warnings" ]; then
+	echo "$size; dev profile${toolchain:+ and toolchain $toolchain} in place."
+else
+	echo "$size.$warnings"
+fi

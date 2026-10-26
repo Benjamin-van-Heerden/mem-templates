@@ -71,6 +71,13 @@ Good crate boundaries:
 
 Do not create one huge crate with unrelated modules if independent compilation and clearer dependency boundaries would help.
 
+Crate boundaries are also compile-time boundaries. An edit recompiles its crate and everything that depends on it, and a crate's tests compile all of its dependencies:
+- Keep the binary crate thin: startup, configuration and wiring. Logic in `main.rs` recompiles and relinks the whole application on every edit.
+- Keep domain crates free of the UI framework, async runtimes and other heavy dependencies, so their tests build in seconds.
+- Point dependencies inward: `app` depends on `ui` and `core`, `ui` on `core`, and `core` on neither.
+- Declare shared versions once in `[workspace.dependencies]` and lints in `[workspace.lints]`; members use `dep.workspace = true` and `[lints] workspace = true`.
+- Set `default-members` to the binary crate so a bare `cargo build` builds the application and nothing else.
+
 ### Features
 
 Library features must be additive.
@@ -520,16 +527,17 @@ tracing::info!(user.id = %user.id, "sending email");
 
 ## Static Verification
 
-All Rust projects should use the standard verification loop.
+Verify the crates you changed, not the whole workspace:
 
 ```bash
 cargo fmt
-cargo clippy --all-targets --all-features
-cargo test --all-features
-cargo check --all-targets --all-features
+cargo clippy -q -p <crate> --all-targets -- -D warnings
+cargo test -q -p <crate>
 ```
 
-For libraries, also consider:
+While iterating, `cargo check -q -p <crate>` is enough. It skips code generation and linking, so it takes well under a second on a warm crate.
+
+Check the whole workspace (`--workspace`) and feature combinations before a release or when asked, not on every change. `--all-features` builds every optional dependency, which costs time and grows `target/`. For libraries, the release checks are:
 
 ```bash
 cargo test --no-default-features
@@ -787,26 +795,13 @@ Use `unsafe` for performance only after benchmarking proves the safe version is 
 
 When working in a Rust codebase:
 
-1. Run or recommend the standard verification commands.
+1. Follow the iteration loop in the project's `cargo-iteration` memory: `cargo check -q -p <crate>` while iterating, then scoped clippy and tests before finishing.
 2. Prefer compiler-guided changes over speculative rewrites.
 3. Keep public APIs idiomatic and documented.
-4. Add tests for changed behavior.
-5. Avoid introducing new dependencies without explicit approval.
+4. Add tests for changed behavior, in the crate that owns it.
+5. Avoid introducing new dependencies without explicit approval. Each one adds compile time to every cold build.
 6. Avoid introducing `unsafe` unless absolutely necessary.
 7. Keep changes small, typed, and easy to review.
+8. Read a dependency's API at the version in `Cargo.lock` rather than from memory (the `rust-build-performance` skill shows where its source is).
 
-Default verification:
-
-```bash
-cargo fmt
-cargo clippy --all-targets --all-features
-cargo test --all-features
-```
-
-For libraries:
-
-```bash
-cargo check --all-targets --all-features
-cargo test --all-features
-cargo test --no-default-features
-```
+Build speed and the size of `target/` are covered in the `rust-build-performance` skill.

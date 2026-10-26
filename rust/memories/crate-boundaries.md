@@ -1,0 +1,1 @@
+Keep the binary crate thin (startup and wiring only). Domain logic lives in crates that depend on neither the UI framework nor heavy I/O libraries, so an edit recompiles little and its tests build fast. Split out a crate when a part compiles and tests on its own, keep tests in the crate they test so `-p <crate>` scopes them, and add dependencies only with the user's agreement.
