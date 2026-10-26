@@ -10,6 +10,8 @@ myapp-core.workspace = true
 
 [dev-dependencies]
 gpui-kit = { workspace = true, features = ["test-support"] }
+# Names the screenshot type; GPUI already builds this crate, with PNG support.
+image = { version = "0.25", default-features = false }
 
 # Headless rendering needs the process's main thread, so this test target has its own main.
 [[test]]

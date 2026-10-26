@@ -27,5 +27,7 @@ pub fn open_main_window(cx: &mut App) -> Result<(AnyWindowHandle, Entity<MainVie
         window_min_size: Some(size(px(480.), px(320.))),
         ..Default::default()
     };
-    gpui_kit::open_window(options, cx, |window, cx| cx.new(|cx| MainView::new(window, cx)))
+    gpui_kit::open_window(options, cx, |window, cx| {
+        cx.new(|cx| MainView::new(window, cx))
+    })
 }

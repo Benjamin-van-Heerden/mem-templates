@@ -20,7 +20,8 @@ crates/
     src/lib.rs          init (actions, key bindings, menus), open_main_window
     src/main_view.rs    the root view: focus handle, theme colours, a gpui-kit Button
     tests/main_view.rs  #[gpui_kit::test] behaviour test: real clicks on an offscreen window
-    tests/screenshots.rs  harness = false: renders views headlessly into target/screenshots/*.png
+    tests/screenshots.rs  harness = false: renders views headlessly into target/screenshots/*.png, as stills
+                        (light, dark) and as a workflow (increment_flow: click twice, capture each step)
   core/                 domain logic, no GPUI: builds and tests in seconds
 ```
 
@@ -48,7 +49,8 @@ Why it looks like this:
 ## Growing the app
 
 - **A new view or component** goes in `crates/ui/src/<feature>/`: a module per feature holding its views, its entity state and its actions. Follow the `gpui` and `gpui-kit` skills, and read the `gpui-kit-design-guides` skill before designing a screen.
-- **A new screen gets a screenshot case** in `crates/ui/tests/screenshots.rs`, in light and dark, and a behaviour test when it reacts to input (the `gpui-verify-ui` memory).
+- **A new screen gets a screenshot case** in `crates/ui/tests/screenshots.rs`, in light and dark (the `gpui-verify-ui` memory).
+- **A user workflow** (open, click, type, confirm) gets a workflow case there too, modelled on `increment_flow`: act through `TestWindowExt` inside `update_window`, capture each step as `<flow>_<n>_<what>.png`, and assert on the state. The `gpui` skill's `testing` reference explains the API.
 - **Domain types, parsing, file formats, storage and network clients** go in `core`, or in a new crate beside it when they compile and test on their own (`crates/<name>-<area>`). Keep GPUI types out of them: convert at the ui boundary (`String` to `SharedString`, domain errors to notifications).
 - **App-wide state** lives in an `Entity` held by a `Global`, created in `ui::init` (the `gpui` skill's `app-architecture` reference).
 - **New actions** are declared with `actions!(<name>, [...])` in the ui crate and bound in `init`. Action names must be unique in the binary.
@@ -61,6 +63,6 @@ Why it looks like this:
 cargo run                                              # the app (default member)
 cargo check -q -p <name>-ui                            # while iterating on UI
 cargo test -q -p <name>-ui                             # behaviour tests and screenshots
-cargo test -q -p <name>-ui --test screenshots -- dark  # only the cases whose name contains "dark"
+cargo test -q -p <name>-ui --test screenshots -- flow  # only the cases whose name contains "flow"
 cargo clippy -q -p <name>-ui --all-targets -- -D warnings
 ```

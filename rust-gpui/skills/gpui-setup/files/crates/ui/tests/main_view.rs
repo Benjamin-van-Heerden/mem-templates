@@ -9,7 +9,9 @@ fn clicking_increment_counts(cx: &mut TestAppContext) {
     cx.update(gpui_kit::init);
     let (window, view) = cx
         .update(|cx| {
-            gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| cx.new(|cx| MainView::new(window, cx)))
+            gpui_kit::open_window(WindowOptions::default(), cx, |window, cx| {
+                cx.new(|cx| MainView::new(window, cx))
+            })
         })
         .expect("open the window");
 

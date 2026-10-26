@@ -62,7 +62,7 @@ cargo metadata --format-version 1 --offline | jq -r '.packages[] | select(.name 
     - Declare unit actions with `actions!(namespace, [A, B])` and data actions with `#[derive(Clone, PartialEq, serde::Deserialize, schemars::JsonSchema, Action)]`, which needs `schemars` 1.x.
     - Names must be unique in the binary.
     - Bind platform keys with `#[cfg(target_os = "macos")] KeyBinding::new("cmd-…")`: `secondary-` panics in `KeyBinding::new`.
-12. **Check UI changes yourself** with a headless screenshot test (see `testing`), and look at the PNG before saying a view works.
+12. **Check UI changes yourself** with a headless screenshot test, and drive workflows through it: click and type through `TestWindowExt`, then capture each step (see `testing`). Look at the PNGs before saying a view or a flow works.
 
 ## A complete view
 

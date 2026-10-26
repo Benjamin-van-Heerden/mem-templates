@@ -222,9 +222,77 @@ fn shoot(cx: &mut HeadlessAppContext, handle: AnyWindowHandle, name: &str) -> Pa
     path
 }
 ```
-To screenshot after interaction, do it inside `cx.update_window(handle, |_, window, cx| { window.click("name", cx); window.input("Ada", cx); window.render_frame(cx); })` before `capture_screenshot`.
-
 Verified on 2026-10-26 (macOS 27, M4 Pro): a test like this builds and runs, and writes a PNG at twice the window size (960×640 for 480×320) with real text. The first build of the `test-support` variant of GPUI took 20 s and added 0.5 GB to `target/`. Later runs take about 3 s.
+
+### Workflows: interact, then screenshot each step
+
+The same headless window takes input through gpui-kit's `TestWindowExt`:
+- **Pointer:** `click`, `double_click`, `right_click`, `hover`, `drag_to` and `scroll`, with real hit testing on the drawn frame. A click lands on whatever is drawn at the element's position, so an overlay covering a button gets the click.
+- **Keyboard:** `input` and `press`.
+
+Interact inside `update_window`, then draw and capture again. A user workflow becomes a sequence of screenshots plus assertions on the state. Verified on 2026-10-26: two clicks on a gpui-kit `Button` counted, and the second PNG showed "Clicked 2 times" with the button in its hover shade, since the pointer stays where it clicked.
+
+```rust
+use gpui_kit::component::button::{Button, ButtonVariants as _};
+use gpui_kit::test::TestWindowExt as _;
+use gpui_kit::{
+    AnyWindowHandle, AppContext as _, Bounds, ClickEvent, Context, HeadlessAppContext, IntoElement, ParentElement,
+    Render, Styled, Window, WindowBounds, WindowOptions, div, px, size,
+};
+
+struct Counter {
+    count: u32,
+}
+
+impl Render for Counter {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        div().size_full().p_4().child(format!("Clicked {} times", self.count)).child(
+            Button::new("increment").primary().label("Increment").on_click(cx.listener(
+                |this, _: &ClickEvent, _, cx| {
+                    this.count += 1;
+                    cx.notify();
+                },
+            )),
+        )
+    }
+}
+
+/// One workflow case: `cx` comes from `context()` in the recipe above.
+fn increment_flow(cx: &mut HeadlessAppContext, dir: &std::path::Path) {
+    let options = WindowOptions {
+        window_bounds: Some(WindowBounds::Windowed(Bounds { origin: Default::default(), size: size(px(480.), px(320.)) })),
+        focus: false,
+        show: false,
+        ..Default::default()
+    };
+    let (window, counter): (AnyWindowHandle, _) = cx
+        .update(|cx| gpui_kit::open_window(options, cx, |_, cx| cx.new(|_| Counter { count: 0 })))
+        .expect("open the window");
+
+    // Draw before every capture: capture_screenshot reads the last drawn frame.
+    cx.update_window(window, |_, window, cx| window.render_frame(cx)).unwrap();
+    let start = cx.capture_screenshot(window).unwrap();
+
+    cx.update_window(window, |_, window, cx| {
+        window.click("increment", cx);
+        window.click("increment", cx);
+    })
+    .unwrap();
+    cx.run_until_parked();
+    cx.update_window(window, |_, window, cx| window.render_frame(cx)).unwrap();
+    let after = cx.capture_screenshot(window).unwrap();
+
+    start.save(dir.join("increment_flow_1_start.png")).unwrap();
+    after.save(dir.join("increment_flow_2_after_two_clicks.png")).unwrap();
+    assert_eq!(cx.update(|cx| counter.read(cx).count), 2, "the clicks did not reach the button");
+    assert!(start != after, "the window looks the same after the clicks");
+}
+```
+
+- **Name the steps** `<flow>_<n>_<what>.png`, so the PNGs sort in order. Look at them in order before saying a workflow works.
+- **Assert on state,** such as the entity's fields or `window.find(id).value()` and `.checked()`. Pixels alone don't say what is wrong. Compare whole screenshots only for "something changed" or "nothing changed".
+- **Naming the image type in a helper** (`fn shoot(..) -> RgbaImage`) needs `image = { version = "0.25", default-features = false }` as a dev-dependency, because gpui doesn't re-export it. That's the same crate GPUI already builds, with PNG support, so it costs nothing extra. The starter does this.
+- **Timers and animations** (tooltips, hover delays) advance with `cx.advance_clock(duration)` before the capture. Wall-clock animations don't.
 
 Still unconfirmed:
 - `HeadlessAppContext::update` borrows the `App` directly without `App::update`, so effects queued there may flush only on the next `update_window` (which does go through `App::update`, `GP/src/app.rs:3280`). Making state changes inside `update_window` and calling `render_frame` immediately before capture avoids depending on this.

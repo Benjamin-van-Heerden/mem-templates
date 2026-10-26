@@ -16,7 +16,10 @@ impl MainView {
         let focus = cx.focus_handle();
         // With nothing focused, key bindings and element actions never fire.
         focus.focus(window, cx);
-        Self { focus, counter: Counter::default() }
+        Self {
+            focus,
+            counter: Counter::default(),
+        }
     }
 
     pub fn count(&self) -> u32 {
@@ -42,11 +45,14 @@ impl Render for MainView {
             .bg(cx.theme().background)
             .text_color(cx.theme().foreground)
             .child(format!("Clicked {} times", self.counter.value()))
-            .child(Button::new("increment").primary().label("Increment").on_click(cx.listener(
-                |this, _: &ClickEvent, _window, cx| {
-                    this.counter = this.counter.increment();
-                    cx.notify();
-                },
-            )))
+            .child(
+                Button::new("increment")
+                    .primary()
+                    .label("Increment")
+                    .on_click(cx.listener(|this, _: &ClickEvent, _window, cx| {
+                        this.counter = this.counter.increment();
+                        cx.notify();
+                    })),
+            )
     }
 }
