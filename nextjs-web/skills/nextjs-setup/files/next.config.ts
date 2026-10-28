@@ -12,8 +12,14 @@ serverEnvSchema.parse(process.env);
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
-  // Enables forbidden() and unauthorized(), used by requirePermission.
-  experimental: { authInterrupts: true },
+  // Memoizes components and hooks. The guarantee setting is explicit because its default can differ between compiler implementations.
+  reactCompiler: { environment: { enablePreserveExistingMemoizationGuarantees: true } },
+  experimental: {
+    // Enables forbidden() and unauthorized(), used by requirePermission.
+    authInterrupts: true,
+    // Runs the React Compiler as the Rust port inside Turbopack instead of through babel-plugin-react-compiler.
+    turbopackRustReactCompiler: true,
+  },
   // Stops `next dev` from writing its own agent block into AGENTS.md; mem manages AGENTS.md.
   agentRules: false,
   poweredByHeader: false,

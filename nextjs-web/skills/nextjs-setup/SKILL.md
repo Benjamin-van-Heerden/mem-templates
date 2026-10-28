@@ -15,7 +15,7 @@ A new project is set up by the template's setup: `mem init --template nextjs-web
 
 ## What `files/` contains
 
-- `next.config.ts`: Cache Components, auth interrupts (`forbidden()`), `agentRules: false` (keeps an agent-run `next dev` out of `AGENTS.md`), Workflow, the app URLs taken from portless in development, and the env schemas parsed so a bad environment fails the build.
+- `next.config.ts`: Cache Components, React Compiler (the Rust port inside Turbopack, so no Babel plugin), auth interrupts (`forbidden()`), `agentRules: false` (keeps an agent-run `next dev` out of `AGENTS.md`), Workflow, the app URLs taken from portless in development, and the env schemas parsed so a bad environment fails the build.
 - `vercel.json`: bun install and build, region `fra1`, `git.deploymentEnabled` turning off deployments of the development and staging branches (adjust the names to `.mem/config.toml`), the example cron.
 - `.env.example`, `src/env/*`: the typed environment, including `SUPER_ADMIN_*` (`nextjs-env`).
 - `scripts/smoke.ts` (`bun run smoke [url]`): checks a running app end to end (home, redirect, refused sign-up, super-admin sign-in, `/dashboard`, `/admin/users`) with the credentials from the environment, without printing them. Without a URL it checks this checkout's `bun run dev` through portless. Agents use it instead of reading secrets or driving a browser.
@@ -61,6 +61,7 @@ Each piece is independent. Copy its files, add its dependencies, and read its sk
 | Database | `src/db/*`, `drizzle.config.ts`, `scripts/migrate.ts`, build and db scripts, the repository rules in `eslint.config.mjs` | `drizzle-neon` |
 | Auth | `src/features/auth/*`, `src/app/api/auth/[...all]/route.ts`, `src/proxy.ts`, `scripts/auth-schema.ts` | `better-auth` |
 | Caching | `cacheComponents: true` in `next.config.ts`, then fix blocking-route errors | `nextjs-caching` |
+| React Compiler | `reactCompiler` and `experimental.turbopackRustReactCompiler` in `next.config.ts`, then fix what `bun run lint` reports and check the affected UI | `nextjs` |
 | Jobs and cron | `withWorkflow` in `next.config.ts`, a workflow and steps, `src/app/api/cron/*`, `crons` in `vercel.json` | `background-jobs` |
 | UI | `bunx shadcn@latest init`, the `(app)` and `(site)` route groups | `design-system` |
 

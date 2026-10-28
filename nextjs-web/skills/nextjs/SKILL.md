@@ -31,7 +31,7 @@ Related house skills:
 - `error.tsx` receives a stable `retry` prop (it was `unstable_retry` in 16.2).
 - Routes opt into or out of instant-navigation validation with `export const instant = true | false` (formerly `unstable_instant`).
 - `forbidden()` and `unauthorized()` are experimental auth interrupts. They require `experimental.authInterrupts: true` and cannot be called in the root layout.
-- React Compiler is stable but off by default. Do not assume its optimizations unless `reactCompiler` is configured and `babel-plugin-react-compiler` is installed.
+- React Compiler is stable but off by default. This project turns it on with the Rust port, `experimental.turbopackRustReactCompiler`, which runs inside Turbopack and needs no `babel-plugin-react-compiler`. See React Compiler and Memoization.
 
 ## Project Structure
 
@@ -64,6 +64,8 @@ import { withWorkflow } from 'workflow/next'
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
+  reactCompiler: { environment: { enablePreserveExistingMemoizationGuarantees: true } },
+  experimental: { authInterrupts: true, turbopackRustReactCompiler: true },
   agentRules: false, // keeps next dev out of AGENTS.md, which mem manages
   poweredByHeader: false,
 }
@@ -74,8 +76,6 @@ export default withWorkflow(nextConfig)
 Add other options deliberately:
 
 - `typedRoutes: true`: statically typed `Link` hrefs.
-- `reactCompiler: true`: after installing `babel-plugin-react-compiler`.
-- `experimental.authInterrupts: true`: enables `unauthorized()` and `forbidden()`.
 - `turbopack`: top-level, not the old `experimental.turbo`.
 - `images`: remote hosts must be configured before `next/image` can use remote URLs.
 - `redirects`, `rewrites`, `headers`: static routing and response rules.
@@ -132,11 +132,13 @@ Mark every module that touches the database, secrets or the session with `import
 
 ## React Compiler and Memoization
 
-This template does not enable React Compiler. Do not remove existing memoization assuming it is on. If you enable it, do so deliberately (`reactCompiler: true` plus `babel-plugin-react-compiler`) and verify the affected UI. With or without it:
+React Compiler is on and memoizes components and hooks at build time. `next.config.ts` sets `reactCompiler` and `experimental.turbopackRustReactCompiler`, which runs the compiler's Rust port inside Turbopack. Do not install `babel-plugin-react-compiler`, and do not switch to webpack (`--webpack`): the Rust port only runs under Turbopack, which `next dev` and `next build` use by default. `enablePreserveExistingMemoizationGuarantees: true` is set explicitly because its default can differ between compiler implementations; with it, existing `useMemo`, `useCallback` and `memo` keep their guarantees.
 
-- Do not add `memo`, `useMemo` or `useCallback` by habit; prefer simple, pure components.
-- Keep `useMemo` for measured expensive work and `useCallback` where stable identity is an external contract.
-- Follow the Rules of React; memoization is an optimisation, never correctness.
+- Do not add `memo`, `useMemo` or `useCallback` for render performance; prefer simple, pure components and let the compiler memoize.
+- Keep `useMemo` for measured expensive work and `useCallback` where stable identity is an external contract. Do not remove existing memoization in passing.
+- Follow the Rules of React. The compiler skips a component or hook that breaks them and leaves it unoptimised; `bun run lint` reports these through `eslint-plugin-react-hooks` (from `eslint-config-next`). Memoization is an optimisation, never correctness.
+- Libraries that return values the compiler cannot track make it skip the component (`react-hooks/incompatible-library`). With react-hook-form, read field values with `useWatch({ control: form.control, name })`, not `form.watch()`.
+- `'use no memo'` as the first statement of a component or hook opts it out. Use it only to work around a compiler problem, with a comment saying why.
 
 ## Rendering and Streaming
 
