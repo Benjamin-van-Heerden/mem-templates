@@ -27,6 +27,7 @@ Related house skills:
 - `params` and `searchParams` props are Promises in pages, layouts, route handlers and generated metadata/image routes.
 - Use the generated route helpers `PageProps<'/route'>`, `LayoutProps<'/route'>` and `RouteContext<'/route'>`. `next dev`, `next build` and `next typegen` generate them, so type-check with `next typegen && tsc --noEmit`.
 - `cacheComponents: true` is on. With it, the segment configs `dynamic`, `dynamicParams`, `revalidate` and `fetchCache` are removed, `runtime = 'edge'` is not supported, and `unstable_cache` is replaced by `use cache`. See `nextjs-caching`.
+- `partialPrefetching: true` is on with it: a `<Link>` prefetches its route's App Shell (static content and cached content that does not depend on the URL), and `<Link prefetch={true}>` also prefetches cached URL-specific content. Next 17 turns both on everywhere.
 - `revalidateTag` takes a second argument such as `'max'`. Use `updateTag` in Server Actions for read-your-own-writes.
 - `error.tsx` receives a stable `retry` prop (it was `unstable_retry` in 16.2).
 - Routes opt into or out of instant-navigation validation with `export const instant = true | false` (formerly `unstable_instant`).
@@ -64,6 +65,7 @@ import { withWorkflow } from 'workflow/next'
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
+  partialPrefetching: true,
   reactCompiler: { environment: { enablePreserveExistingMemoizationGuarantees: true } },
   experimental: { authInterrupts: true, turbopackRustReactCompiler: true },
   agentRules: false, // keeps next dev out of AGENTS.md, which mem manages

@@ -12,6 +12,18 @@ serverEnvSchema.parse(process.env);
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
+  // A <Link> prefetches its route's App Shell; <Link prefetch={true}> also prefetches cached content that depends on the URL.
+  partialPrefetching: true,
+  // Tailwind is compiled by its Turbopack loader; there is no PostCSS config. CSS modules keep their module type, or their
+  // class names would not be exported.
+  turbopack: {
+    rules: {
+      "*.css": [
+        { condition: { path: /\.module\.css$/ }, loaders: ["@tailwindcss/turbopack"], as: "*.module.css" },
+        { condition: { not: { path: /\.module\.css$/ } }, loaders: ["@tailwindcss/turbopack"], as: "*.css" },
+      ],
+    },
+  },
   // Memoizes components and hooks. The guarantee setting is explicit because its default can differ between compiler implementations.
   reactCompiler: { environment: { enablePreserveExistingMemoizationGuarantees: true } },
   experimental: {
