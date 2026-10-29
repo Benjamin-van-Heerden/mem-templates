@@ -32,6 +32,7 @@ A project sends improvements back with `mem template promote <memory|skill|doc> 
 <template>/docs/<name>.md        a project doc, installed in .mem/docs/ and printed at every onboard
 <template>/runnables/<name>      a script installed in .mem/runnables/ and run at every onboard; its output joins the context
 <template>/setup.md              optional one-time setup for new projects, installed by `mem init` in .mem/setup.md
+<template>/changes/<name>.md     a change note: what projects built before a template change must do; each project gets it once as a todo
 ```
 
 Prefer skills over docs for framework guides: skills load when relevant, docs are read in full every session. Use a runnable for checks that depend on the project's state, such as the size of `target/`. Keep it fast (onboard stops it after 15 seconds) and quiet: one status line, with ⚠️ lines and the fix only when something is wrong.
@@ -55,3 +56,21 @@ Done when: what must hold before the box is ticked.
 `mem init --template <name>` copies it to `.mem/setup.md`. While that file exists, onboard puts it first and the agent works through it with the user, ticking and committing each step; it deletes the file when every step is done. Mark steps that need the user (accounts, secrets, choices) with `(you)` and put them last. Keep the knowledge in skills and let the steps point to them; a setup is followed once, skills are used for the life of the project. `mem template use` does not run a setup on an existing project.
 
 Skills copied from other projects keep their licence: the skill's frontmatter names the licence and the source commit, and a `LICENSE` file sits beside `SKILL.md` where the licence requires one. Refresh them from the recorded source rather than editing them, and record any local change under `metadata.modified`.
+
+## Change notes
+
+A sync updates a project's memories, skills, docs and runnables, but never the files the project built from the template: starter files it copied, the setup steps it ran, the dependencies it installed. When a template change needs action there, write a change note, `<template>/changes/<date>-<slug>.md`:
+
+```markdown
+# React Compiler through the Rust port
+
+The template now turns on the React Compiler in `next.config.ts` ...
+
+In an existing project: ...
+Check: ...
+Does not apply when: ...
+```
+
+mem turns every note a project has not seen into a todo at its next onboard or sync, quoting the note, and records it in `.mem/templates.lock` so it arrives once. Projects that start from the template after the note (`mem init`, `mem template use`) record it without a todo. So say what changed, what an existing project should change and how to check it, and when the note does not apply; the agent acts on the note alone.
+
+Write one for a change that existing projects have to make: a setting in a starter file, a setup step, a dependency, or skill guidance that contradicts what projects already built. Don't write one for wording, new knowledge that asks nothing of existing code, or a change that only matters to new projects. A project never reads a note again once it has seen it, so correct a published note with a new one rather than an edit.
