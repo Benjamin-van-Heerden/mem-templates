@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { CopyButton } from "@/components/copy-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -25,7 +26,7 @@ async function Users() {
       <Card>
         <CardHeader>
           <CardTitle>Add a user</CardTitle>
-          <CardDescription>Sign-up is closed; accounts are created here. Share the initial password with the user.</CardDescription>
+          <CardDescription>Sign-up is closed; accounts are created here. The account gets a temporary password, shown below until it is used: share it with the person, who chooses their own at first sign-in.</CardDescription>
         </CardHeader>
         <CardContent>
           <CreateUserForm />
@@ -48,10 +49,11 @@ async function Users() {
             <TableBody>
               {users.map((u) => (
                 <TableRow key={u.id}>
-                  <TableCell className="font-medium">
+                  <TableCell className="font-medium whitespace-normal">
                     {u.name}
                     {u.banned && <Badge variant="destructive" className="ml-2">Banned</Badge>}
                     <div className="mt-1 sm:hidden"><RoleBadge role={u.role} /></div>
+                    {u.temporaryPassword && <TemporaryPassword value={u.temporaryPassword} />}
                   </TableCell>
                   <TableCell className="hidden text-muted-foreground sm:table-cell">{u.email}</TableCell>
                   <TableCell className="hidden sm:table-cell">
@@ -67,6 +69,17 @@ async function Users() {
         </CardContent>
       </Card>
     </>
+  );
+}
+
+// Shown until the person signs in with it and chooses their own password.
+function TemporaryPassword({ value }: { value: string }) {
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-2">
+      <span className="text-xs font-medium tracking-wider text-muted-foreground uppercase">Temporary password</span>
+      <code className="font-mono text-sm font-normal wrap-anywhere">{value}</code>
+      <CopyButton value={value} />
+    </div>
   );
 }
 

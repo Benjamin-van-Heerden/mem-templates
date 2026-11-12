@@ -9,6 +9,7 @@ import { db } from "@/db/client";
 import * as usersRepo from "@/db/repositories/users";
 import * as schema from "@/db/schema";
 import { serverEnv } from "@/env/server";
+import { temporaryPassword } from "./temporary-password";
 
 export const auth = betterAuth({
   baseURL: serverEnv.BETTER_AUTH_URL,
@@ -25,6 +26,8 @@ export const auth = betterAuth({
       adminRoles: ["super_admin", "admin"],
       roles: { super_admin: adminAc, admin: adminAc, member: userAc },
     }),
+    // Temporary passwords from admins: no session until the person has chosen their own password.
+    temporaryPassword(),
     // Lets Server Actions that call auth.api set cookies; must be the last plugin.
     nextCookies(),
   ],

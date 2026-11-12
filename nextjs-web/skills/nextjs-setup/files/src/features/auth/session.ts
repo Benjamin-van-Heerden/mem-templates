@@ -12,7 +12,8 @@ export type CurrentUser = { id: string; name: string; email: string; role: strin
 export async function getCurrentUser(): Promise<CurrentUser> {
   "use cache: private";
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session || session.user.banned) redirect("/login");
+  // A pending password change never gets a session (temporary-password.ts); refusing one here too keeps it that way.
+  if (!session || session.user.banned || session.user.mustChangePassword) redirect("/login");
   return { id: session.user.id, name: session.user.name, email: session.user.email, role: session.user.role ?? "member" };
 }
 

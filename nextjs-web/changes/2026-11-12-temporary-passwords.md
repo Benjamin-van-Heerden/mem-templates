@@ -1,0 +1,17 @@
+# Temporary passwords instead of admin-typed passwords
+
+The template no longer has admins type an initial password on `/admin/users`, and it adds password resets. Creating an account or resetting a password generates a temporary password, stored on the user and shown on `/admin/users` with a copy button until it is used. Signing in with it opens no session: a better-auth plugin refuses every session while `mustChangePassword` is set, sign-in answers 403 `PASSWORD_CHANGE_REQUIRED`, and the login form asks for a new password, which a dedicated endpoint sets before it opens the session. A reset also signs the person out everywhere. The `better-auth` skill (Temporary passwords) describes it, and the starter files in `.agents/skills/nextjs-setup/files/` hold the code.
+
+In an existing project:
+
+1. Copy from `.agents/skills/nextjs-setup/files/`: `src/features/auth/temporary-password.ts`, `src/features/auth/temporary-password-schema.ts`, `src/components/copy-button.tsx`, `tests/test-db.ts` and `tests/temporary-password.test.ts`.
+2. Bring these files in line with the starter copies, keeping the project's own changes: `src/features/auth/server.ts` (register `temporaryPassword()` before `nextCookies()`), `src/features/auth/client.ts` (the typed client plugin), `src/features/auth/login-form.tsx` (the choose-a-password step), `src/features/auth/session.ts` (`getCurrentUser` also redirects on `mustChangePassword`), `src/features/users/actions.ts` (`createUser` with a generated password, `resetPassword`), `src/features/users/schema.ts` and `create-user-form.tsx` (no password field), `src/features/users/user-row-actions.tsx` (Reset password behind a confirm dialog), `src/db/repositories/users.ts` (`temporaryPassword` while the flag is set), `src/app/(app)/admin/users/page.tsx` (the temporary password with a copy button; the name cell wraps) and `src/app/api/auth/[...all]/route.ts` (expires the `users` cache tag after a password change). The users page uses shadcn's `dialog`; add it if it is missing (`bunx shadcn@latest add dialog`).
+3. Run `bun run auth:schema`, then `bun run db:generate` and `bun run db:migrate`. The migration only adds `must_change_password` (boolean, default false) and `temporary_password` to `user`, so existing accounts keep their passwords and sign in as before.
+4. Add the test setup: `bun add -d @electric-sql/pglite`, and the script `"test": "bun --conditions=react-server test tests"` in `package.json`. If the project already has tests, keep its layout and merge the two files into it.
+5. Update the project's docs or setup notes that tell users to type an initial password.
+
+Check: `bun run lint`, `bun run typecheck` and `bun run test` pass. Then **(you)** the user creates a member on `/admin/users`, signs in as that member with the temporary password shown there, is asked for a new password and lands on `/dashboard`; the temporary password is gone from `/admin/users`; a Reset password on that member shows a new temporary password and the old password no longer signs in.
+
+If the project already has `src/features/auth/temporary-password.ts`, it has this change: compare it with the starter files instead, in particular the cache expiry in `src/app/api/auth/[...all]/route.ts`, without which `/admin/users` keeps showing a used temporary password until its cache expires.
+
+Does not apply when the project has replaced the template's email-and-password sign-in or its user management, for example with a hosted identity provider or SSO. Tell the user and delete the todo.

@@ -1,6 +1,6 @@
 ---
 name: better-auth
-description: Authentication and authorisation in this project with better-auth, stored in our own Postgres through Drizzle - config, roles and permissions, the one super admin synced from env, user management, session reads with Cache Components, proxy.ts, and regenerating the auth schema. Use when touching sign-in, sessions, protected routes, roles, permissions, users or the auth tables.
+description: Authentication and authorisation in this project with better-auth, stored in our own Postgres through Drizzle - config, roles and permissions, the one super admin synced from env, user management, temporary passwords and resets, session reads with Cache Components, proxy.ts, and regenerating the auth schema. Use when touching sign-in, passwords, sessions, protected routes, roles, permissions, users or the auth tables.
 ---
 
 # better-auth
@@ -12,10 +12,13 @@ src/features/auth/server.ts        the betterAuth instance and the super-admin g
 src/features/auth/session.ts       getCurrentUser() and requirePermission(): the data access layer's entry points
 src/features/auth/permissions.ts   roles, permissions and hasPermission / permissionsFor
 src/features/auth/super-admin.ts   syncSuperAdmin, used by scripts/seed.ts
+src/features/auth/temporary-password.ts         the temporary-password plugin and generateTemporaryPassword (server-only)
+src/features/auth/temporary-password-schema.ts  its error code and body schema, shared with the login form
 src/features/auth/client.ts        authClient for Client Components
 src/features/users/*               user management behind users:manage
 src/db/repositories/users.ts       the app's reads of the user table
-src/app/api/auth/[...all]/route.ts better-auth's HTTP handler
+src/app/api/auth/[...all]/route.ts better-auth's HTTP handler; expires the cached user list after a password change
+tests/temporary-password.test.ts   the temporary-password boundary, over HTTP on an in-memory Postgres
 src/proxy.ts                       optimistic redirect for protected URL prefixes
 src/db/schema/auth.ts              generated tables; never edit by hand
 ```
@@ -33,12 +36,13 @@ export const auth = betterAuth({
   hooks: { before: createAuthMiddleware(protectSuperAdmin) },
   plugins: [
     admin({ defaultRole: 'member', adminRoles: ['super_admin', 'admin'], roles: { super_admin: adminAc, admin: adminAc, member: userAc } }),
+    temporaryPassword(), // no session until the person has replaced an admin-issued password
     nextCookies(), // keep last: lets Server Actions that call auth.api set cookies
   ],
 })
 ```
 
-- `disableSignUp`: accounts come from the seed (the super admin) and from `/admin/users`.
+- `disableSignUp`: accounts come from the seed (the super admin) and from `/admin/users`, with a temporary password (see below).
 - `rateLimit.storage: 'database'`: serverless instances share no memory, so in-memory rate limits do not hold.
 - `BETTER_AUTH_URL` must equal `NEXT_PUBLIC_APP_URL` (`src/env/server.ts` enforces it). Under `bun run dev` both are the checkout's portless URL, so better-auth accepts requests from it and refuses `http://localhost:3000`. Other origins that must reach the auth API go in `trustedOrigins`.
 
@@ -77,7 +81,7 @@ There is exactly one `super_admin`, and the environment owns it:
 
 ## User management
 
-`src/features/users/`: `data.ts` (`getUsers`: permission check, then an unexported cached read tagged `users` through `src/db/repositories/users.ts`), `schema.ts` (zod, shared with the forms; roles limited to `assignableRoles`), `actions.ts` (create, change role, ban, unban). Every action goes through one helper:
+`src/features/users/`: `data.ts` (`getUsers`: permission check, then an unexported cached read tagged `users` through `src/db/repositories/users.ts`), `schema.ts` (zod, shared with the forms; roles limited to `assignableRoles`), `actions.ts` (create, reset password, change role, ban, unban). Every action goes through one helper:
 
 ```ts
 async function run<S extends z.ZodType>(schema: S, input: unknown, call: (data: z.infer<S>, requestHeaders: Headers) => Promise<unknown>): Promise<ActionResult> {
@@ -91,11 +95,28 @@ async function run<S extends z.ZodType>(schema: S, input: unknown, call: (data: 
 }
 
 export async function createUser(input: unknown) {
-  return run(newUserSchema, input, (body, h) => auth.api.createUser({ body, headers: h }))
+  return run(newUserSchema, input, (body, h) => {
+    const temporaryPassword = generateTemporaryPassword()
+    return auth.api.createUser({ body: { ...body, password: temporaryPassword, data: { mustChangePassword: true, temporaryPassword } }, headers: h })
+  })
 }
 ```
 
-Calling `auth.api.*` with the request's headers makes better-auth act as the signed-in user, so its role checks and the super-admin guard apply as well.
+Calling `auth.api.*` with the request's headers makes better-auth act as the signed-in user, so its role checks and the super-admin guard apply as well. The admin plugin spreads `data` into the new user, which is how the plugin's fields are set.
+
+## Temporary passwords
+
+Admins never choose or type passwords. Creating an account or resetting a password generates a temporary one, and the person replaces it before they get a session.
+
+- **Issuing.** `createUser` and `resetPassword` (`src/features/users/actions.ts`) set the account's password to `generateTemporaryPassword()` (20 characters from an alphabet without look-alikes, in groups of five) and store it on the user: `temporaryPassword` (plain text) and `mustChangePassword = true`. `/admin/users` shows it with a copy button until it is used, so an admin cannot lose it before passing it on. `usersRepo.list` returns it only while the flag is set. It sits in the database and its backups until it is used; it is good only for the one step below, which clears it.
+- **Resets.** `resetPassword` calls `setUserPassword`, then `adminUpdateUser` with the two fields, then `revokeUserSessions`, all as the signed-in admin. The old password stops working and the person is signed out everywhere. Nobody resets their own password there, and `protectSuperAdmin` refuses resets of the super admin like every other `/admin/*` call.
+- **The boundary.** The plugin's `databaseHooks.session.create.before` refuses to create any session for a user with `mustChangePassword`, whatever creates it (sign-in, impersonation). So a correct temporary password at `/sign-in/email` answers 403 with `code: 'PASSWORD_CHANGE_REQUIRED'`, and no session row or cookie exists. `getCurrentUser()` also redirects a session whose user has the flag, as a second check.
+- **Choosing a password.** The login form switches to a choose-a-password step on that code, keeping the email and temporary password in client state, and calls `authClient.temporaryPassword.change({ email, temporaryPassword, newPassword })`. That endpoint (`POST /api/auth/temporary-password/change`) verifies the temporary password against the stored hash again, requires the flag, refuses banned users, a password outside better-auth's length limits and the temporary password itself, then sets the new password, clears both fields, and only then creates the session and sets the cookie. Every wrong-credential case is the same 401, an unknown email is hashed anyway so it takes as long, and the path is limited to 5 attempts a minute.
+- **Cache.** That endpoint is not a Server Action, so it cannot call `updateTag`. `src/app/api/auth/[...all]/route.ts` expires the `users` tag with `revalidateTag(usersTag, { expire: 0 })` after a successful change, so the list stops showing a used password.
+- **Typing the client.** `client.ts` registers a client plugin with `$InferServerPlugin: {} as ReturnType<typeof temporaryPassword>`, which gives `authClient.temporaryPassword.change` its types. It imports the plugin only as a type, so no server code reaches the browser.
+- **The super admin** is unaffected: the seed writes its row directly, and the flag defaults to false.
+
+`tests/temporary-password.test.ts` drives `auth.handler` over HTTP against `betterAuth` with the admin plugin and this plugin on PGlite with the project's migrations (`tests/test-db.ts`): the right temporary password opens no session, a wrong one changes nothing, the change signs in and retires the temporary password, and it cannot be kept or reused. Run it with `bun run test` after upgrading better-auth. In better-auth 1.7, `internalAdapter.createUser` takes a provisioning source as its second argument (`{ method: 'admin' }`).
 
 ## Reading the session
 
@@ -131,6 +152,7 @@ Every signed-in URL prefix goes in the matcher. Route groups do not protect anyt
 ## Client side
 
 - Sign-in and sign-out go through `authClient` (`authClient.signIn.email(values)`, `authClient.signOut()`), then `router.push()` and `router.refresh()`. The login form uses react-hook-form with a zod schema and shows better-auth's `error.message` through `form.setError('root', …)`.
+- The login form has two steps: sign-in, and choosing a password when sign-in answers `PASSWORD_CHANGE_REQUIRED` (see Temporary passwords).
 - `authClient` includes `adminClient()`, so Client Components can call `authClient.admin.*`; prefer the Server Actions in `src/features/users`, which check permissions and refresh the cached list.
 
 ## Changing the auth schema

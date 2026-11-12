@@ -9,7 +9,7 @@ import { createUser } from "./actions";
 import { newUserSchema } from "./schema";
 
 export function CreateUserForm() {
-  const form = useForm({ resolver: zodResolver(newUserSchema), defaultValues: { name: "", email: "", password: "", role: "member" as const } });
+  const form = useForm({ resolver: zodResolver(newUserSchema), defaultValues: { name: "", email: "", role: "member" as const } });
   const { errors, isSubmitting } = form.formState;
 
   const onSubmit = form.handleSubmit(async (values) => {
@@ -29,11 +29,6 @@ export function CreateUserForm() {
         <FieldLabel htmlFor="email">Email</FieldLabel>
         <Input id="email" type="email" autoComplete="off" {...form.register("email")} />
         <FieldError errors={[errors.email]} />
-      </Field>
-      <Field data-invalid={!!errors.password}>
-        <FieldLabel htmlFor="password">Initial password</FieldLabel>
-        <Input id="password" type="password" autoComplete="new-password" {...form.register("password")} />
-        <FieldError errors={[errors.password]} />
       </Field>
       <Field>
         <FieldLabel htmlFor="role">Role</FieldLabel>

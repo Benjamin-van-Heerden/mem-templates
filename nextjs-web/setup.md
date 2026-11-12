@@ -29,12 +29,12 @@ Done when: `package.json` carries the repository's name, `bun install` succeeded
 
 ```sh
 bun add drizzle-orm pg better-auth zod server-only workflow @vercel/functions react-hook-form @hookform/resolvers
-bun add -d drizzle-kit @types/pg @types/bun auth portless @next/env@$(bun -e 'console.log(require("next/package.json").version)')
+bun add -d drizzle-kit @types/pg @types/bun auth portless @electric-sql/pglite @next/env@$(bun -e 'console.log(require("next/package.json").version)')
 bunx shadcn@latest init -d --base radix
 bunx shadcn@latest add button input label field card sheet tooltip table select dialog badge dropdown-menu separator avatar
 ```
 
-`auth` is better-auth's CLI package and must stay on the same version as `better-auth`. `portless` serves `bun run dev` at a named HTTPS URL instead of a port (see step 5). Without `--base radix`, `shadcn init -d` picks Base UI. bun blocks the install scripts of a few packages (esbuild, @swc/core, cbor-extract); builds work without them, so leave `trustedDependencies` alone. `shadcn add tooltip` suggests wrapping the app in `TooltipProvider`: the starter's rail already does, so ignore it.
+`auth` is better-auth's CLI package and must stay on the same version as `better-auth`. `portless` serves `bun run dev` at a named HTTPS URL instead of a port (see step 5). `@electric-sql/pglite` is an in-memory Postgres for `bun run test`. Without `--base radix`, `shadcn init -d` picks Base UI. bun blocks the install scripts of a few packages (esbuild, @swc/core, cbor-extract); builds work without them, so leave `trustedDependencies` alone. `shadcn add tooltip` suggests wrapping the app in `TooltipProvider`: the starter's rail already does, so ignore it.
 
 Done when: the commands succeeded, `@next/env` has the same version as `next`, and `components.json` has `"style": "radix-nova"`.
 
@@ -43,7 +43,7 @@ Done when: the commands succeeded, `@next/env` has the same version as `next`, a
 ```sh
 cp -R .agents/skills/nextjs-setup/files/. .
 rm src/app/page.tsx
-bun -e 'const f = "package.json"; const p = await Bun.file(f).json(); p.scripts = { dev: "portless run next dev", build: "bun scripts/migrate.ts && bun scripts/seed.ts && next build", start: "next start", lint: "eslint", typecheck: "next typegen && tsc --noEmit", "db:generate": "drizzle-kit generate", "db:migrate": "bun scripts/migrate.ts", "db:seed": "bun scripts/seed.ts", "db:studio": "drizzle-kit studio", "auth:schema": "bun --conditions=react-server scripts/auth-schema.ts", smoke: "bun scripts/smoke.ts" }; await Bun.write(f, JSON.stringify(p, null, 2) + "\n")'
+bun -e 'const f = "package.json"; const p = await Bun.file(f).json(); p.scripts = { dev: "portless run next dev", build: "bun scripts/migrate.ts && bun scripts/seed.ts && next build", start: "next start", lint: "eslint", typecheck: "next typegen && tsc --noEmit", "db:generate": "drizzle-kit generate", "db:migrate": "bun scripts/migrate.ts", "db:seed": "bun scripts/seed.ts", "db:studio": "drizzle-kit studio", "auth:schema": "bun --conditions=react-server scripts/auth-schema.ts", smoke: "bun scripts/smoke.ts", test: "bun --conditions=react-server test tests" }; await Bun.write(f, JSON.stringify(p, null, 2) + "\n")'
 ```
 
 The copied `src/app/layout.tsx` names the font variables `--font-sans` and `--font-mono`, as the shadcn tokens expect: in `src/app/globals.css`, change `--font-mono: var(--font-geist-mono);` to `--font-mono: var(--font-mono);`. Then append the signed-in backgrounds to `src/app/globals.css`:
@@ -121,9 +121,12 @@ Fill in `SUPER_ADMIN_EMAIL` and `SUPER_ADMIN_NAME`, and tell the user their init
 ```sh
 bun run db:generate && bun run db:migrate && bun run db:seed
 bun run typecheck
+bun run test
 ```
 
-Done when: `drizzle/` holds the first migration, `bun run db:seed` prints that the super admin is in place, a second run reports no creation, and typecheck passes.
+`bun run test` runs `tests/` against an in-memory Postgres with the migrations in `drizzle/`, never the Neon database; `--conditions=react-server` lets it import modules marked `server-only`.
+
+Done when: `drizzle/` holds the first migration, `bun run db:seed` prints that the super admin is in place, a second run reports no creation, and typecheck and `bun run test` pass.
 
 ## [ ] 5. Auth barriers and route groups
 
@@ -285,7 +288,9 @@ Pages and actions call `requirePermission("…")`; navigation items take `permis
 
 A page that fails `requirePermission` renders `src/app/forbidden.tsx` inside the streamed page, so it answers 200 with "No access" rather than 403.
 
-Done when: **(you)** signed in as the super admin, the user creates a member through the form on `/admin/users`; the member can sign in and use `/dashboard`, gets "No access" on `/admin/users`, and does not see Users in the navigation.
+Admins never type passwords. A new account, and every password reset, gets a temporary password that `/admin/users` shows with a copy button until it is used. Signing in with it opens no session: the login form asks the person to choose their own password first (`better-auth`, Temporary passwords).
+
+Done when: **(you)** signed in as the super admin, the user creates a member through the form on `/admin/users` and copies the temporary password shown there; signing in as the member with it asks for a new password and then opens `/dashboard`; the temporary password is gone from `/admin/users`; the member gets "No access" on `/admin/users` and does not see Users in the navigation.
 
 ## [ ] 11. Dashboard and navigation (you)
 
